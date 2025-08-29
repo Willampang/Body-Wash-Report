@@ -2,9 +2,178 @@ function doGet() {
   return HtmlService.createHtmlOutputFromFile('form')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
+// NEW: Get totals up to yesterday (excluding today's data if any)
+function getCurrentTotalsForPreview() {
+  var spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  var summarySheet = spreadsheet.getSheetByName("Sheet1");
+  
+  if (!summarySheet) {
+    // If no data exists, return original base values
+    return {
+      fb: { enquiry: 1185, followup: 649, waiting: 8, noreply: 507, drop: 7, closedCustomers: 33, closedB3F1: 28, closedSingle: 6 },
+      organic: { enquiry: 5, followup: 0, waiting: 0, noreply: 0, drop: 0, closedCustomers: 5, closedB3F1: 5, closedSingle: 0 }
+    };
+  }
+  
+  var today = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd");
+  var lastRow = summarySheet.getLastRow();
+  
+  if (lastRow <= 1) {
+    // No data entries, return original base values
+    return {
+      fb: { enquiry: 1185, followup: 649, waiting: 8, noreply: 507, drop: 7, closedCustomers: 33, closedB3F1: 28, closedSingle: 6 },
+      organic: { enquiry: 5, followup: 0, waiting: 0, noreply: 0, drop: 0, closedCustomers: 5, closedB3F1: 5, closedSingle: 0 }
+    };
+  }
+  
+  // Get all data
+  var allData = summarySheet.getRange(2, 1, lastRow - 1, 15).getValues();
+  
+  // Filter out today's entries and calculate totals up to yesterday
+  var totals = {
+    fb: { enquiry: 1185, followup: 649, waiting: 8, noreply: 507, drop: 7, closedCustomers: 33, closedB3F1: 28, closedSingle: 6 },
+    organic: { enquiry: 5, followup: 0, waiting: 0, noreply: 0, drop: 0, closedCustomers: 5, closedB3F1: 5, closedSingle: 0 }
+  };
+  
+  // Add up all entries that are NOT from today
+  for (var i = 0; i < allData.length; i++) {
+    var entryDate = allData[i][0]; // Date column
+    if (entryDate !== today) { // Only include entries that are not from today
+      // FB data (columns B-G)
+      totals.fb.enquiry += allData[i][1] || 0;
+      totals.fb.followup += allData[i][2] || 0;
+      totals.fb.waiting += allData[i][3] || 0;
+      totals.fb.noreply += allData[i][4] || 0;
+      totals.fb.drop += allData[i][5] || 0;
+      
+      var fbClosedProducts = allData[i][6] || 0;
+      // Estimate customers and product breakdown (you may need to adjust these ratios)
+      totals.fb.closedCustomers += Math.floor(fbClosedProducts * 0.9); // Assume 90% of products = customers
+      totals.fb.closedB3F1 += Math.floor(fbClosedProducts * 0.8); // Assume 80% are B3F1 sets
+      totals.fb.closedSingle += Math.floor(fbClosedProducts * 0.2); // Assume 20% are singles
+      
+      // Organic data (columns H-M)
+      totals.organic.enquiry += allData[i][7] || 0;
+      totals.organic.followup += allData[i][8] || 0;
+      totals.organic.waiting += allData[i][9] || 0;
+      totals.organic.noreply += allData[i][10] || 0;
+      totals.organic.drop += allData[i][11] || 0;
+      
+      var organicClosedProducts = allData[i][12] || 0;
+      // Estimate customers and product breakdown
+      totals.organic.closedCustomers += Math.floor(organicClosedProducts * 0.9);
+      totals.organic.closedB3F1 += Math.floor(organicClosedProducts * 0.8);
+      totals.organic.closedSingle += Math.floor(organicClosedProducts * 0.2);
+    }
+  }
+  
+  return totals;
+}
+// NEW: Get current base totals from a dedicated config sheet
+function getBaseTotals() {
+  var spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  var configSheet = spreadsheet.getSheetByName("Config");
+  
+  if (!configSheet) {
+    // Create config sheet with initial values
+    configSheet = spreadsheet.insertSheet("Config");
+    configSheet.appendRow(["Setting", "FB_Enquiry", "FB_Followup", "FB_Waiting", "FB_Noreply", "FB_Drop", "FB_ClosedCustomers", "FB_ClosedB3F1", "FB_ClosedSingle", "Organic_Enquiry", "Organic_Followup", "Organic_Waiting", "Organic_Noreply", "Organic_Drop", "Organic_ClosedCustomers", "Organic_ClosedB3F1", "Organic_ClosedSingle"]);
+    configSheet.appendRow(["BaseTotals", 1185, 649, 8, 507, 7, 33, 28, 6, 5, 0, 0, 0, 0, 5, 5, 0]);
+    return {
+      fb: { enquiry: 1185, followup: 649, waiting: 8, noreply: 507, drop: 7, closedCustomers: 33, closedB3F1: 28, closedSingle: 6 },
+      organic: { enquiry: 5, followup: 0, waiting: 0, noreply: 0, drop: 0, closedCustomers: 5, closedB3F1: 5, closedSingle: 0 }
+    };
+  }
+  
+  var data = configSheet.getRange(2, 2, 1, 16).getValues()[0];
+  return {
+    fb: {
+      enquiry: data[0] || 1185,
+      followup: data[1] || 649,
+      waiting: data[2] || 8,
+      noreply: data[3] || 507,
+      drop: data[4] || 7,
+      closedCustomers: data[5] || 33,
+      closedB3F1: data[6] || 28,
+      closedSingle: data[7] || 6
+    },
+    organic: {
+      enquiry: data[8] || 5,
+      followup: data[9] || 0,
+      waiting: data[10] || 0,
+      noreply: data[11] || 0,
+      drop: data[12] || 0,
+      closedCustomers: data[13] || 5,
+      closedB3F1: data[14] || 5,
+      closedSingle: data[15] || 0
+    }
+  };
+}
+
+// NEW: Update base totals in config sheet
+function updateBaseTotals(newData) {
+  var spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  var configSheet = spreadsheet.getSheetByName("Config");
+  
+  if (!configSheet) {
+    getBaseTotals(); // This will create the config sheet
+    configSheet = spreadsheet.getSheetByName("Config");
+  }
+  
+  var currentTotals = getBaseTotals();
+  
+  // Add new data to current totals
+  currentTotals.fb.enquiry += parseInt(newData.fbEnquiry || 0);
+  currentTotals.fb.followup += parseInt(newData.fbFollowup || 0);
+  currentTotals.fb.waiting += parseInt(newData.fbWaiting || 0);
+  currentTotals.fb.noreply += parseInt(newData.fbNoreply || 0);
+  currentTotals.fb.drop += parseInt(newData.fbDrop || 0);
+  currentTotals.fb.closedCustomers += parseInt(newData.fbClosedCustomers || 0);
+  currentTotals.fb.closedB3F1 += parseInt(newData.fbClosedB3F1 || 0);
+  currentTotals.fb.closedSingle += parseInt(newData.fbClosedSingle || 0);
+  
+  currentTotals.organic.enquiry += parseInt(newData.organicEnquiry || 0);
+  currentTotals.organic.followup += parseInt(newData.organicFollowup || 0);
+  currentTotals.organic.waiting += parseInt(newData.organicWaiting || 0);
+  currentTotals.organic.noreply += parseInt(newData.organicNoreply || 0);
+  currentTotals.organic.drop += parseInt(newData.organicDrop || 0);
+  currentTotals.organic.closedCustomers += parseInt(newData.organicClosedCustomers || 0);
+  currentTotals.organic.closedB3F1 += parseInt(newData.organicClosedB3F1 || 0);
+  currentTotals.organic.closedSingle += parseInt(newData.organicClosedSingle || 0);
+  
+  // Save updated totals back to config sheet
+  configSheet.getRange(2, 2, 1, 16).setValues([[
+    currentTotals.fb.enquiry, currentTotals.fb.followup, currentTotals.fb.waiting, currentTotals.fb.noreply, currentTotals.fb.drop, currentTotals.fb.closedCustomers, currentTotals.fb.closedB3F1, currentTotals.fb.closedSingle,
+    currentTotals.organic.enquiry, currentTotals.organic.followup, currentTotals.organic.waiting, currentTotals.organic.noreply, currentTotals.organic.drop, currentTotals.organic.closedCustomers, currentTotals.organic.closedB3F1, currentTotals.organic.closedSingle
+  ]]);
+  
+  return currentTotals;
+}
+
+// NEW: Reset base totals to original values
+function resetBaseTotals() {
+  var spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  var configSheet = spreadsheet.getSheetByName("Config");
+  
+  if (!configSheet) {
+    configSheet = spreadsheet.insertSheet("Config");
+    configSheet.appendRow(["Setting", "FB_Enquiry", "FB_Followup", "FB_Waiting", "FB_Noreply", "FB_Drop", "FB_ClosedCustomers", "FB_ClosedB3F1", "FB_ClosedSingle", "Organic_Enquiry", "Organic_Followup", "Organic_Waiting", "Organic_Noreply", "Organic_Drop", "Organic_ClosedCustomers", "Organic_ClosedB3F1", "Organic_ClosedSingle"]);
+  }
+  
+  // Reset to original values
+  configSheet.getRange(2, 1, 1, 17).setValues([["BaseTotals", 1185, 649, 8, 507, 7, 33, 28, 6, 5, 0, 0, 0, 0, 5, 5, 0]]);
+  
+  return {
+    fb: { enquiry: 1185, followup: 649, waiting: 8, noreply: 507, drop: 7, closedCustomers: 33, closedB3F1: 28, closedSingle: 6 },
+    organic: { enquiry: 5, followup: 0, waiting: 0, noreply: 0, drop: 0, closedCustomers: 5, closedB3F1: 5, closedSingle: 0 }
+  };
+}
 
 function submitData(data) {
   try {
+    // Get current base totals
+    var currentTotals = getBaseTotals();
+    
     // Get the active spreadsheet
     var spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
     
@@ -60,6 +229,9 @@ function submitData(data) {
       totalSales, todaysClosed
     ]);
     
+    // Update base totals with submitted data
+    var updatedTotals = updateBaseTotals(data);
+    
     // Append new daily report to the Daily Report sheet
     appendToDailyReport(spreadsheet, {
       date: today,
@@ -87,9 +259,9 @@ function submitData(data) {
       },
       todaysClosed: todaysClosed,
       totalSales: totalSales
-    });
+    }, currentTotals); // Pass the old totals for calculation
     
-    return { success: true, message: "Data saved successfully to both Sheet1 and Daily Report!" };
+    return { success: true, message: "Data saved successfully to both Sheet1 and Daily Report! Base totals updated." };
     
   } catch (error) {
     console.error("Error in submitData:", error);
@@ -97,17 +269,16 @@ function submitData(data) {
   }
 }
 
-// New function to append daily reports without clearing previous ones
-function appendToDailyReport(spreadsheet, data) {
+// Modified to use passed totals instead of calculating from Sheet1
+function appendToDailyReport(spreadsheet, data, previousTotals) {
   // Get or create the Daily Report sheet
   var reportSheet = spreadsheet.getSheetByName("Daily Report");
   if (!reportSheet) {
     reportSheet = spreadsheet.insertSheet("Daily Report");
   }
   
-  // Calculate totals from previous data in Sheet1
-  var summarySheet = spreadsheet.getSheetByName("Sheet1");
-  var totals = calculateTotals(summarySheet);
+  // Use the passed previous totals (before today's data was added)
+  var totals = previousTotals;
   
   // Find the next available row (after previous reports)
   var lastRow = reportSheet.getLastRow();
@@ -196,12 +367,11 @@ function createDailyReportSection(sheet, startRow, data, totals) {
   sheet.getRange(salesStartRow + 2, 3).setValue(fbTotalSingle);
   sheet.getRange(salesStartRow + 2, 4).setValue(fbSingleAmount.toFixed(2));
   
-  // FIXED: Calculate percentage using CUSTOMERS not B3F1 sets
+  // Calculate percentage using CUSTOMERS not B3F1 sets
   var fbTotalEnquiry = totals.fb.enquiry + data.fb.enquiry;
   var fbTotalClosedCustomers = totals.fb.closedCustomers + data.fb.closedCustomers;
   var fbClosedPercentage = fbTotalEnquiry > 0 ? ((fbTotalClosedCustomers / fbTotalEnquiry) * 100).toFixed(2) : 0;
   
-  // FIXED: Formula shows CUSTOMERS not B3F1 sets
   sheet.getRange(salesStartRow + 3, 1).setValue("Total Closed\n" + fbTotalClosedCustomers + "(" + formatChange(data.fb.closedCustomers) + ")/" + fbTotalEnquiry);
   sheet.getRange(salesStartRow + 3, 2).setValue(fbClosedPercentage + "%");
   sheet.getRange(salesStartRow + 3, 4).setValue(fbTotalAmount.toFixed(2));
@@ -217,12 +387,11 @@ function createDailyReportSection(sheet, startRow, data, totals) {
   sheet.getRange(salesStartRow + 2, 7).setValue(organicTotalSingle);
   sheet.getRange(salesStartRow + 2, 8).setValue(organicSingleAmount.toFixed(2));
   
-  // FIXED: Calculate percentage using CUSTOMERS not B3F1 sets
+  // Calculate percentage using CUSTOMERS not B3F1 sets
   var organicTotalEnquiry = totals.organic.enquiry + data.organic.enquiry;
   var organicTotalClosedCustomers = totals.organic.closedCustomers + data.organic.closedCustomers;
   var organicClosedPercentage = organicTotalEnquiry > 0 ? ((organicTotalClosedCustomers / organicTotalEnquiry) * 100).toFixed(2) : 0;
   
-  // FIXED: Formula shows CUSTOMERS not B3F1 sets
   sheet.getRange(salesStartRow + 3, 5).setValue("Total Closed\n" + organicTotalClosedCustomers + "(" + formatChange(data.organic.closedCustomers) + ")/" + organicTotalEnquiry);
   sheet.getRange(salesStartRow + 3, 6).setValue(organicClosedPercentage + "%");
   sheet.getRange(salesStartRow + 3, 8).setValue(organicTotalAmount.toFixed(2));
@@ -266,57 +435,7 @@ function formatChange(value) {
   return "+0";
 }
 
-function calculateTotals(summarySheet) {
-  if (!summarySheet) {
-    return {
-      fb: { enquiry: 1185, followup: 649, waiting: 8, noreply: 507, drop: 7, closedCustomers: 33, closedB3F1: 28, closedSingle: 6 },
-      organic: { enquiry: 5, followup: 0, waiting: 0, noreply: 0, drop: 0, closedCustomers: 5, closedB3F1: 5, closedSingle: 0 }
-    };
-  }
-  
-  var lastRow = summarySheet.getLastRow();
-  if (lastRow <= 1) {
-    return {
-      fb: { enquiry: 1185, followup: 649, waiting: 8, noreply: 501, drop: 7, closedCustomers: 33, closedB3F1: 28, closedSingle: 6 },
-      organic: { enquiry: 5, followup: 0, waiting: 0, noreply: 0, drop: 0, closedCustomers: 5, closedB3F1: 5, closedSingle: 0 }
-    };
-  }
-  
-  var data = summarySheet.getRange(2, 1, lastRow - 1, 15).getValues();
-  var totals = {
-    fb: { enquiry: 1185, followup: 649, waiting:8, noreply: 501, drop: 7, closedCustomers: 33, closedB3F1: 28, closedSingle: 6 },
-    organic: { enquiry: 5, followup: 0, waiting: 0, noreply: 0, drop: 0, closedCustomers: 5, closedB3F1: 5, closedSingle: 0 }
-  };
-  
-  // Sum all previous entries (excluding today's entry which is the last one)
-  for (var i = 0; i < data.length - 1; i++) {
-    // FB data (columns B-G)
-    totals.fb.enquiry += data[i][1] || 0;
-    totals.fb.followup += data[i][2] || 0;
-    totals.fb.waiting += data[i][3] || 0;
-    totals.fb.noreply += data[i][4] || 0;
-    totals.fb.drop += data[i][5] || 0;
-    
-    var fbClosedProducts = data[i][6] || 0;
-    totals.fb.closedB3F1 += Math.floor(fbClosedProducts * 0.8);
-    totals.fb.closedSingle += Math.floor(fbClosedProducts * 0.2);
-    totals.fb.closedCustomers += Math.floor(fbClosedProducts * 0.9);
-    
-    // Organic data (columns H-M)
-    totals.organic.enquiry += data[i][7] || 0;
-    totals.organic.followup += data[i][8] || 0;
-    totals.organic.waiting += data[i][9] || 0;
-    totals.organic.noreply += data[i][10] || 0;
-    totals.organic.drop += data[i][11] || 0;
-    
-    var organicClosedProducts = data[i][12] || 0;
-    totals.organic.closedB3F1 += Math.floor(organicClosedProducts * 0.8);
-    totals.organic.closedSingle += Math.floor(organicClosedProducts * 0.2);
-    totals.organic.closedCustomers += Math.floor(organicClosedProducts * 0.9);
-  }
-  
-  return totals;
-}
+// REMOVED: calculateTotals function - no longer needed since we use Config sheet
 
 function formatDailyReportSection(sheet, startRow, endRow) {
   // Set column widths (only need to do this once for the sheet)
