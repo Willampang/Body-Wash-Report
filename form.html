@@ -74,10 +74,6 @@
             font-weight: bold;
             color: #555;
         }
-        .label-small {
-            font-size: 12px;
-            color: #777;
-        }
         input[type="number"] {
             width: 100%;
             padding: 8px;
@@ -103,20 +99,6 @@
         button:disabled {
             background-color: #cccccc;
             cursor: not-allowed;
-        }
-        .reset-btn {
-            background-color: #f44336;
-            margin-top: 10px;
-        }
-        .reset-btn:hover {
-            background-color: #d32f2f;
-        }
-        .load-btn {
-            background-color: #2196F3;
-            margin-top: 10px;
-        }
-        .load-btn:hover {
-            background-color: #1976D2;
         }
         .message {
             margin-top: 15px;
@@ -209,6 +191,13 @@
             text-align: center;
         }
         
+        .loading-indicator {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+            padding: 20px;
+        }
+        
         @media (max-width: 1200px) {
             .main-container {
                 flex-direction: column;
@@ -229,7 +218,7 @@
             <h1>Daily Sales Report</h1>
             
             <div class="message info">
-                <strong>Note:</strong> Base totals are now stored permanently in Google Sheets. Click "Load Current Totals" to refresh the preview with latest data.
+                <strong>Note:</strong> Previous data is automatically loaded from Daily Report sheet when the page opens.
             </div>
             
             <form id="salesForm">
@@ -326,8 +315,6 @@
                 </div>
                 
                 <button type="submit" id="submitBtn">Submit & Update Data</button>
-                <button type="button" id="loadBtn" class="load-btn">Load Current Totals</button>
-                <button type="button" id="resetBtn" class="reset-btn">Reset Base Data</button>
             </form>
             
             <div id="message" class="message" style="display: none;"></div>
@@ -335,7 +322,8 @@
         
         <div class="preview-container">
             <h2>Live Preview</h2>
-            <div id="summaryPreview">
+            <div id="loadingIndicator" class="loading-indicator">Loading previous data from Daily Report...</div>
+            <div id="summaryPreview" style="display: none;">
                 <!-- Main Summary Table -->
                 <table class="summary-table">
                     <tr>
@@ -356,7 +344,7 @@
                     <tr>
                         <td class="fb-ad-row">Contact:</td>
                         <td class="fb-ad-row" id="fbEnquiryChange">+0</td>
-                        <td class="fb-ad-row" id="fbEnquiryTotal">1185</td>
+                        <td class="fb-ad-row" id="fbEnquiryTotal">1254</td>
                         <td style="border: none;"></td>
                         <td class="organic-row">Contact:</td>
                         <td class="organic-row" id="organicEnquiryChange">+0</td>
@@ -365,7 +353,7 @@
                     <tr>
                         <td class="fb-ad-row">Follow Up:</td>
                         <td class="fb-ad-row" id="fbFollowupChange">+0</td>
-                        <td class="fb-ad-row" id="fbFollowupTotal">649</td>
+                        <td class="fb-ad-row" id="fbFollowupTotal">688</td>
                         <td style="border: none;"></td>
                         <td class="organic-row">Follow Up:</td>
                         <td class="organic-row" id="organicFollowupChange">+0</td>
@@ -383,7 +371,7 @@
                     <tr>
                         <td class="fb-ad-row">No Reply:</td>
                         <td class="fb-ad-row" id="fbNoreplyChange">+0</td>
-                        <td class="fb-ad-row" id="fbNoreplyTotal">507</td>
+                        <td class="fb-ad-row" id="fbNoreplyTotal">536</td>
                         <td style="border: none;"></td>
                         <td class="organic-row">No Reply:</td>
                         <td class="organic-row" id="organicNoreplyChange">+0</td>
@@ -401,7 +389,7 @@
                     <tr>
                         <td class="fb-ad-row">Closed</td>
                         <td class="fb-ad-row" id="fbClosedCustomersChange">+0</td>
-                        <td class="fb-ad-row" id="fbClosedCustomersTotal">33</td>
+                        <td class="fb-ad-row" id="fbClosedCustomersTotal">34</td>
                         <td style="border: none;"></td>
                         <td class="organic-row">Closed</td>
                         <td class="organic-row" id="organicClosedCustomersChange">+0</td>
@@ -418,7 +406,7 @@
                     <tr>
                         <td class="sales-row">Total B3F1 Set Order<br>( RM 487 / set )</td>
                         <td class="sales-row" id="fbSalesB3F1Change">+0</td>
-                        <td class="sales-row" id="fbSalesB3F1Total">28</td>
+                        <td class="sales-row" id="fbSalesB3F1Total">29</td>
                         <td class="sales-row" id="fbSalesB3F1Amount">13,636.00</td>
                         <td class="sales-row">Total B3F1 Set Order<br>( RM 487 / set )</td>
                         <td class="sales-row" id="organicSalesB3F1Change">+0</td>
@@ -436,7 +424,7 @@
                         <td class="sales-row" id="organicSalesSingleAmount">0.00</td>
                     </tr>
                     <tr>
-                        <td class="sales-row"><strong>Total Closed</strong><br><span id="fbClosedFormula">33(+0)/1185</span></td>
+                        <td class="sales-row"><strong>Total Closed</strong><br><span id="fbClosedFormula">33(+0)/1254</span></td>
                         <td class="sales-row" id="fbClosedPercentage">2.78%</td>
                         <td class="sales-row"></td>
                         <td class="sales-row" id="fbTotalAmount"><strong>14,638.00</strong></td>
@@ -456,11 +444,11 @@
                         </tr>
                         <tr>
                             <td>Enquiry (<span id="simpleEnquiry">+0</span>)</td>
-                            <td id="simpleEnquiryTotal">1190</td>
+                            <td id="simpleEnquiryTotal">1254</td>
                         </tr>
                         <tr>
                             <td>Follow Up (<span id="simpleFollowup">+0</span>)</td>
-                            <td id="simpleFollowupTotal">649</td>
+                            <td id="simpleFollowupTotal">688</td>
                         </tr>
                         <tr>
                             <td>Waiting Payment (<span id="simpleWaiting">+0</span>)</td>
@@ -468,7 +456,7 @@
                         </tr>
                         <tr>
                             <td>No reply (<span id="simpleNoreply">+0</span>)</td>
-                            <td id="simpleNoreplyTotal">507</td>
+                            <td id="simpleNoreplyTotal">536</td>
                         </tr>
                         <tr>
                             <td>Drop (<span id="simpleDrop">+0</span>)</td>
@@ -476,7 +464,7 @@
                         </tr>
                         <tr>
                             <td>Closed (<span id="simpleClosed">+0</span>)</td>
-                            <td id="simpleClosedTotal">38</td>
+                            <td id="simpleClosedTotal">39</td>
                         </tr>
                     </table>
                 </div>
@@ -490,150 +478,52 @@
             organic: { enquiry: 5, followup: 0, waiting: 0, noreply: 0, drop: 0, closedCustomers: 5, closedB3F1: 5, closedSingle: 0 }
         };
 
-        function loadCurrentTotals() {
-            const loadBtn = document.getElementById('loadBtn');
-            loadBtn.disabled = true;
-            loadBtn.textContent = 'Loading...';
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded, auto-loading data from Daily Report...');
             
-            const messageDiv = document.getElementById('message');
-            messageDiv.style.display = 'none';
-            
+            // Auto-load current totals from Daily Report sheet on page load
             if (typeof google !== 'undefined' && google.script && google.script.run) {
                 google.script.run
                     .withSuccessHandler(function(totals) {
                         currentBaseTotals = totals;
+                        document.getElementById('loadingIndicator').style.display = 'none';
+                        document.getElementById('summaryPreview').style.display = 'block';
                         updatePreview();
+                        console.log('Auto-loaded current totals from Daily Report sheet');
+                    })
+                    .withFailureHandler(function(error) {
+                        console.error('Failed to auto-load totals:', error);
+                        document.getElementById('loadingIndicator').style.display = 'none';
+                        document.getElementById('summaryPreview').style.display = 'block';
+                        updatePreview(); // Use default values if load fails
                         
-                        loadBtn.disabled = false;
-                        loadBtn.textContent = 'Load Current Totals';
-                        
-                        messageDiv.className = 'message success';
-                        messageDiv.textContent = 'Base totals refreshed successfully!';
+                        // Show error message
+                        const messageDiv = document.getElementById('message');
+                        messageDiv.className = 'message error';
+                        messageDiv.textContent = 'Could not load previous data. Using default values.';
                         messageDiv.style.display = 'block';
                         
                         setTimeout(() => {
                             messageDiv.style.display = 'none';
-                        }, 3000);
+                        }, 5000);
                     })
-                    .withFailureHandler(function(error) {
-                        loadBtn.disabled = false;
-                        loadBtn.textContent = 'Load Current Totals';
-                        
-                        messageDiv.className = 'message error';
-                        messageDiv.textContent = 'Error loading totals: ' + error.message;
-                        messageDiv.style.display = 'block';
-                    })
-                    .getBaseTotals();
+                    .getCurrentTotalsFromDailyReport();
             } else {
                 // Demo mode
                 setTimeout(() => {
-                    loadBtn.disabled = false;
-                    loadBtn.textContent = 'Load Current Totals';
-                    
-                    messageDiv.className = 'message success';
-                    messageDiv.textContent = 'Base totals refreshed! (Demo mode)';
-                    messageDiv.style.display = 'block';
-                    
-                    setTimeout(() => {
-                        messageDiv.style.display = 'none';
-                    }, 3000);
-                }, 1000);
-            }
-        }
-
-        // Reset base totals to original values
-        function resetBaseTotals() {
-            if (!confirm('Are you sure you want to reset all base data to original values? This cannot be undone.')) {
-                return;
-            }
-            
-            const resetBtn = document.getElementById('resetBtn');
-            resetBtn.disabled = true;
-            resetBtn.textContent = 'Resetting...';
-            
-            const messageDiv = document.getElementById('message');
-            messageDiv.style.display = 'none';
-            
-            if (typeof google !== 'undefined' && google.script && google.script.run) {
-                google.script.run
-                    .withSuccessHandler(function(totals) {
-                        currentBaseTotals = totals;
-                        updatePreview();
-                        
-                        resetBtn.disabled = false;
-                        resetBtn.textContent = 'Reset Base Data';
-                        
-                        messageDiv.className = 'message success';
-                        messageDiv.textContent = 'Base data has been reset to original values.';
-                        messageDiv.style.display = 'block';
-                        
-                        setTimeout(() => {
-                            messageDiv.style.display = 'none';
-                        }, 3000);
-                    })
-                    .withFailureHandler(function(error) {
-                        resetBtn.disabled = false;
-                        resetBtn.textContent = 'Reset Base Data';
-                        
-                        messageDiv.className = 'message error';
-                        messageDiv.textContent = 'Error resetting data: ' + error.message;
-                        messageDiv.style.display = 'block';
-                    })
-                    .resetBaseTotals();
-            } else {
-                // Demo mode
-                setTimeout(() => {
-                    currentBaseTotals = {
-                        fb: { enquiry: 1185, followup: 649, waiting: 8, noreply: 507, drop: 7, closedCustomers: 33, closedB3F1: 28, closedSingle: 6 },
-                        organic: { enquiry: 5, followup: 0, waiting: 0, noreply: 0, drop: 0, closedCustomers: 5, closedB3F1: 5, closedSingle: 0 }
-                    };
+                    document.getElementById('loadingIndicator').style.display = 'none';
+                    document.getElementById('summaryPreview').style.display = 'block';
                     updatePreview();
-                    
-                    resetBtn.disabled = false;
-                    resetBtn.textContent = 'Reset Base Data';
-                    
-                    messageDiv.className = 'message success';
-                    messageDiv.textContent = 'Base data has been reset to original values. (Demo mode)';
-                    messageDiv.style.display = 'block';
-                    
-                    setTimeout(() => {
-                        messageDiv.style.display = 'none';
-                    }, 3000);
                 }, 1000);
             }
-        }
-
-      document.addEventListener('DOMContentLoaded', function() {
-          console.log('DOM loaded, initializing preview...');
-          
-          // Auto-load current totals from server on page load
-          if (typeof google !== 'undefined' && google.script && google.script.run) {
-              google.script.run
-                  .withSuccessHandler(function(totals) {
-                      currentBaseTotals = totals;
-                      updatePreview();
-                      console.log('Auto-loaded current totals from server');
-                  })
-                  .withFailureHandler(function(error) {
-                      console.error('Failed to auto-load totals:', error);
-                      updatePreview(); // Use default values if load fails
-                  })
-                  .getCurrentTotalsForPreview();
-          } else {
-              updatePreview(); // Demo mode
-          }
-          
-          // Add event listeners to all inputs
-          const inputs = document.querySelectorAll('input[type="number"]');
-          inputs.forEach(input => {
-              input.addEventListener('input', updatePreview);
-              input.addEventListener('change', updatePreview);
-          });
-
-          // Add button event listeners
-          document.getElementById('loadBtn').addEventListener('click', loadCurrentTotals);
-          document.getElementById('resetBtn').addEventListener('click', resetBaseTotals);
-      });
+            
+            // Add event listeners to all inputs
+            const inputs = document.querySelectorAll('input[type="number"]');
+            inputs.forEach(input => {
+                input.addEventListener('input', updatePreview);
+                input.addEventListener('change', updatePreview);
+            });
+        });
         
         function updatePreview() {
             console.log('Updating preview...');
@@ -827,7 +717,6 @@
             };
         }
 
-        
         document.getElementById('salesForm').addEventListener('submit', function(e) {
             e.preventDefault();
             
@@ -847,11 +736,17 @@
                         submitBtn.disabled = false;
                         submitBtn.textContent = 'Submit & Update Data';
                         
-                        // Refresh base totals from server after successful submission
-                        loadCurrentTotals();
+                        // Automatically reload the latest totals after successful submission
+                        google.script.run
+                            .withSuccessHandler(function(totals) {
+                                currentBaseTotals = totals;
+                                updatePreview();
+                                console.log('Auto-reloaded totals after submission');
+                            })
+                            .getCurrentTotalsFromDailyReport();
                         
                         messageDiv.className = 'message success';
-                        messageDiv.textContent = response.message || 'Data saved and base totals updated successfully!';
+                        messageDiv.textContent = response.message || 'Data saved successfully!';
                         messageDiv.style.display = 'block';
                         
                         // Reset form inputs
@@ -902,7 +797,7 @@
                     submitBtn.textContent = 'Submit & Update Data';
                     
                     messageDiv.className = 'message success';
-                    messageDiv.textContent = 'Data saved and base totals updated successfully! (Demo mode)';
+                    messageDiv.textContent = 'Data saved successfully! (Demo mode)';
                     messageDiv.style.display = 'block';
                     
                     // Reset form inputs
