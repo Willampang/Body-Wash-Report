@@ -111,6 +111,13 @@
         .reset-btn:hover {
             background-color: #d32f2f;
         }
+        .load-btn {
+            background-color: #2196F3;
+            margin-top: 10px;
+        }
+        .load-btn:hover {
+            background-color: #1976D2;
+        }
         .message {
             margin-top: 15px;
             padding: 10px;
@@ -222,7 +229,7 @@
             <h1>Daily Sales Report</h1>
             
             <div class="message info">
-                <strong>Note:</strong> "Closed" in green table = number of customers. "Closed B3F1 Set Order" in blue table = number of sets sold. When you submit, base totals update automatically.
+                <strong>Note:</strong> Base totals are now stored permanently in Google Sheets. Click "Load Current Totals" to refresh the preview with latest data.
             </div>
             
             <form id="salesForm">
@@ -319,6 +326,7 @@
                 </div>
                 
                 <button type="submit" id="submitBtn">Submit & Update Data</button>
+                <button type="button" id="loadBtn" class="load-btn">Load Current Totals</button>
                 <button type="button" id="resetBtn" class="reset-btn">Reset Base Data</button>
             </form>
             
@@ -411,7 +419,7 @@
                         <td class="sales-row">Total B3F1 Set Order<br>( RM 487 / set )</td>
                         <td class="sales-row" id="fbSalesB3F1Change">+0</td>
                         <td class="sales-row" id="fbSalesB3F1Total">28</td>
-                        <td class="sales-row" id="fbSalesB3F1Amount">12,175.00</td>
+                        <td class="sales-row" id="fbSalesB3F1Amount">13,636.00</td>
                         <td class="sales-row">Total B3F1 Set Order<br>( RM 487 / set )</td>
                         <td class="sales-row" id="organicSalesB3F1Change">+0</td>
                         <td class="sales-row" id="organicSalesB3F1Total">5</td>
@@ -428,10 +436,10 @@
                         <td class="sales-row" id="organicSalesSingleAmount">0.00</td>
                     </tr>
                     <tr>
-                        <td class="sales-row"><strong>Total Closed</strong><br><span id="fbClosedFormula">30(+0)/1185</span></td>
-                        <td class="sales-row" id="fbClosedPercentage">2.68%</td>
+                        <td class="sales-row"><strong>Total Closed</strong><br><span id="fbClosedFormula">33(+0)/1185</span></td>
+                        <td class="sales-row" id="fbClosedPercentage">2.78%</td>
                         <td class="sales-row"></td>
-                        <td class="sales-row" id="fbTotalAmount"><strong>13,177.00</strong></td>
+                        <td class="sales-row" id="fbTotalAmount"><strong>14,638.00</strong></td>
                         <td class="sales-row"><strong>Total Closed</strong><br><span id="organicClosedFormula">5(+0)/5</span></td>
                         <td class="sales-row" id="organicClosedPercentage">100.00%</td>
                         <td class="sales-row"></td>
@@ -448,19 +456,19 @@
                         </tr>
                         <tr>
                             <td>Enquiry (<span id="simpleEnquiry">+0</span>)</td>
-                            <td id="simpleEnquiryTotal">1124</td>
+                            <td id="simpleEnquiryTotal">1190</td>
                         </tr>
                         <tr>
                             <td>Follow Up (<span id="simpleFollowup">+0</span>)</td>
-                            <td id="simpleFollowupTotal">601</td>
+                            <td id="simpleFollowupTotal">649</td>
                         </tr>
                         <tr>
                             <td>Waiting Payment (<span id="simpleWaiting">+0</span>)</td>
-                            <td id="simpleWaitingTotal">7</td>
+                            <td id="simpleWaitingTotal">8</td>
                         </tr>
                         <tr>
                             <td>No reply (<span id="simpleNoreply">+0</span>)</td>
-                            <td id="simpleNoreplyTotal">491</td>
+                            <td id="simpleNoreplyTotal">507</td>
                         </tr>
                         <tr>
                             <td>Drop (<span id="simpleDrop">+0</span>)</td>
@@ -468,7 +476,7 @@
                         </tr>
                         <tr>
                             <td>Closed (<span id="simpleClosed">+0</span>)</td>
-                            <td id="simpleClosedTotal">35</td>
+                            <td id="simpleClosedTotal">38</td>
                         </tr>
                     </table>
                 </div>
@@ -477,151 +485,155 @@
     </div>
 
     <script>
-        // Initialize with default values
-        let fbBaseTotals = {
-            enquiry: 1185,
-            followup: 649,
-            waiting: 8,
-            noreply: 507,
-            drop: 7,
-            closedCustomers: 33, // This is for green table (customer count)
-            closedB3F1: 28, // This is for blue table (product count)
-            closedSingle: 6
-        };
-        
-        let organicBaseTotals = {
-            enquiry: 5,
-            followup: 0,
-            waiting: 0,
-            noreply: 0,
-            drop: 0,
-            closedCustomers: 5, // This is for green table (customer count)
-            closedB3F1: 5, // This is for blue table (product count)
-            closedSingle: 0
+        let currentBaseTotals = {
+            fb: { enquiry: 1254, followup: 688, waiting: 8, noreply: 536, drop: 7, closedCustomers: 34, closedB3F1: 29, closedSingle: 6 },
+            organic: { enquiry: 5, followup: 0, waiting: 0, noreply: 0, drop: 0, closedCustomers: 5, closedB3F1: 5, closedSingle: 0 }
         };
 
-        // Memory storage objects to replace localStorage
-        let memoryStorage = {};
-
-        // Load saved data from memory on page load
-        function loadSavedData() {
-            const savedFbData = memoryStorage.fbBaseTotals;
-            const savedOrganicData = memoryStorage.organicBaseTotals;
+        function loadCurrentTotals() {
+            const loadBtn = document.getElementById('loadBtn');
+            loadBtn.disabled = true;
+            loadBtn.textContent = 'Loading...';
             
-            if (savedFbData) {
-                fbBaseTotals = savedFbData;
-            }
-            if (savedOrganicData) {
-                organicBaseTotals = savedOrganicData;
-            }
+            const messageDiv = document.getElementById('message');
+            messageDiv.style.display = 'none';
             
-            console.log('Loaded base totals:', { fbBaseTotals, organicBaseTotals });
-        }
-
-        // Save data to memory
-        function saveDataToMemory() {
-            memoryStorage.fbBaseTotals = JSON.parse(JSON.stringify(fbBaseTotals));
-            memoryStorage.organicBaseTotals = JSON.parse(JSON.stringify(organicBaseTotals));
-            console.log('Saved base totals to memory');
-        }
-
-        // Update base totals with new data
-        function updateBaseTotals(formData) {
-            // Update FB totals
-            fbBaseTotals.enquiry += parseInt(formData.fbEnquiry || 0);
-            fbBaseTotals.followup += parseInt(formData.fbFollowup || 0);
-            fbBaseTotals.waiting += parseInt(formData.fbWaiting || 0);
-            fbBaseTotals.noreply += parseInt(formData.fbNoreply || 0);
-            fbBaseTotals.drop += parseInt(formData.fbDrop || 0);
-            fbBaseTotals.closedCustomers += parseInt(formData.fbClosedCustomers || 0);
-            fbBaseTotals.closedB3F1 += parseInt(formData.fbClosedB3F1 || 0);
-            fbBaseTotals.closedSingle += parseInt(formData.fbClosedSingle || 0);
-
-            // Update Organic totals
-            organicBaseTotals.enquiry += parseInt(formData.organicEnquiry || 0);
-            organicBaseTotals.followup += parseInt(formData.organicFollowup || 0);
-            organicBaseTotals.waiting += parseInt(formData.organicWaiting || 0);
-            organicBaseTotals.noreply += parseInt(formData.organicNoreply || 0);
-            organicBaseTotals.drop += parseInt(formData.organicDrop || 0);
-            organicBaseTotals.closedCustomers += parseInt(formData.organicClosedCustomers || 0);
-            organicBaseTotals.closedB3F1 += parseInt(formData.organicClosedB3F1 || 0);
-            organicBaseTotals.closedSingle += parseInt(formData.organicClosedSingle || 0);
-
-            // Save updated totals to memory
-            saveDataToMemory();
-        }
-
-        // Reset base totals to original values
-        function resetBaseTotals() {
-            fbBaseTotals = {
-                enquiry: 1185,
-                followup: 649,
-                waiting: 8,
-                noreply: 507,
-                drop: 7,
-                closedCustomers: 33,
-                closedB3F1: 28,
-                closedSingle: 6
-            };
-            
-            organicBaseTotals = {
-                enquiry: 5,
-                followup: 0,
-                waiting: 0,
-                noreply: 0,
-                drop: 0,
-                closedCustomers: 5,
-                closedB3F1: 5,
-                closedSingle: 0
-            };
-
-            // Clear from memory
-            delete memoryStorage.fbBaseTotals;
-            delete memoryStorage.organicBaseTotals;
-            
-            console.log('Reset base totals to original values');
-        }
-        
-        // Initialize preview
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('DOM loaded, initializing preview...');
-            
-            // Load any saved data first
-            loadSavedData();
-            
-            updatePreview();
-            
-            // Add event listeners to all inputs
-            const inputs = document.querySelectorAll('input[type="number"]');
-            console.log('Found inputs:', inputs.length);
-            inputs.forEach(input => {
-                input.addEventListener('input', function() {
-                    console.log('Input changed:', input.id, '=', input.value);
-                    updatePreview();
-                });
-                input.addEventListener('change', function() {
-                    console.log('Input change event:', input.id, '=', input.value);
-                    updatePreview();
-                });
-            });
-
-            // Add reset button event listener
-            document.getElementById('resetBtn').addEventListener('click', function() {
-                if (confirm('Are you sure you want to reset all base data to original values? This cannot be undone.')) {
-                    resetBaseTotals();
-                    updatePreview();
+            if (typeof google !== 'undefined' && google.script && google.script.run) {
+                google.script.run
+                    .withSuccessHandler(function(totals) {
+                        currentBaseTotals = totals;
+                        updatePreview();
+                        
+                        loadBtn.disabled = false;
+                        loadBtn.textContent = 'Load Current Totals';
+                        
+                        messageDiv.className = 'message success';
+                        messageDiv.textContent = 'Base totals refreshed successfully!';
+                        messageDiv.style.display = 'block';
+                        
+                        setTimeout(() => {
+                            messageDiv.style.display = 'none';
+                        }, 3000);
+                    })
+                    .withFailureHandler(function(error) {
+                        loadBtn.disabled = false;
+                        loadBtn.textContent = 'Load Current Totals';
+                        
+                        messageDiv.className = 'message error';
+                        messageDiv.textContent = 'Error loading totals: ' + error.message;
+                        messageDiv.style.display = 'block';
+                    })
+                    .getBaseTotals();
+            } else {
+                // Demo mode
+                setTimeout(() => {
+                    loadBtn.disabled = false;
+                    loadBtn.textContent = 'Load Current Totals';
                     
-                    const messageDiv = document.getElementById('message');
                     messageDiv.className = 'message success';
-                    messageDiv.textContent = 'Base data has been reset to original values.';
+                    messageDiv.textContent = 'Base totals refreshed! (Demo mode)';
                     messageDiv.style.display = 'block';
                     
                     setTimeout(() => {
                         messageDiv.style.display = 'none';
                     }, 3000);
-                }
-            });
-        });
+                }, 1000);
+            }
+        }
+
+        // Reset base totals to original values
+        function resetBaseTotals() {
+            if (!confirm('Are you sure you want to reset all base data to original values? This cannot be undone.')) {
+                return;
+            }
+            
+            const resetBtn = document.getElementById('resetBtn');
+            resetBtn.disabled = true;
+            resetBtn.textContent = 'Resetting...';
+            
+            const messageDiv = document.getElementById('message');
+            messageDiv.style.display = 'none';
+            
+            if (typeof google !== 'undefined' && google.script && google.script.run) {
+                google.script.run
+                    .withSuccessHandler(function(totals) {
+                        currentBaseTotals = totals;
+                        updatePreview();
+                        
+                        resetBtn.disabled = false;
+                        resetBtn.textContent = 'Reset Base Data';
+                        
+                        messageDiv.className = 'message success';
+                        messageDiv.textContent = 'Base data has been reset to original values.';
+                        messageDiv.style.display = 'block';
+                        
+                        setTimeout(() => {
+                            messageDiv.style.display = 'none';
+                        }, 3000);
+                    })
+                    .withFailureHandler(function(error) {
+                        resetBtn.disabled = false;
+                        resetBtn.textContent = 'Reset Base Data';
+                        
+                        messageDiv.className = 'message error';
+                        messageDiv.textContent = 'Error resetting data: ' + error.message;
+                        messageDiv.style.display = 'block';
+                    })
+                    .resetBaseTotals();
+            } else {
+                // Demo mode
+                setTimeout(() => {
+                    currentBaseTotals = {
+                        fb: { enquiry: 1185, followup: 649, waiting: 8, noreply: 507, drop: 7, closedCustomers: 33, closedB3F1: 28, closedSingle: 6 },
+                        organic: { enquiry: 5, followup: 0, waiting: 0, noreply: 0, drop: 0, closedCustomers: 5, closedB3F1: 5, closedSingle: 0 }
+                    };
+                    updatePreview();
+                    
+                    resetBtn.disabled = false;
+                    resetBtn.textContent = 'Reset Base Data';
+                    
+                    messageDiv.className = 'message success';
+                    messageDiv.textContent = 'Base data has been reset to original values. (Demo mode)';
+                    messageDiv.style.display = 'block';
+                    
+                    setTimeout(() => {
+                        messageDiv.style.display = 'none';
+                    }, 3000);
+                }, 1000);
+            }
+        }
+
+      document.addEventListener('DOMContentLoaded', function() {
+          console.log('DOM loaded, initializing preview...');
+          
+          // Auto-load current totals from server on page load
+          if (typeof google !== 'undefined' && google.script && google.script.run) {
+              google.script.run
+                  .withSuccessHandler(function(totals) {
+                      currentBaseTotals = totals;
+                      updatePreview();
+                      console.log('Auto-loaded current totals from server');
+                  })
+                  .withFailureHandler(function(error) {
+                      console.error('Failed to auto-load totals:', error);
+                      updatePreview(); // Use default values if load fails
+                  })
+                  .getCurrentTotalsForPreview();
+          } else {
+              updatePreview(); // Demo mode
+          }
+          
+          // Add event listeners to all inputs
+          const inputs = document.querySelectorAll('input[type="number"]');
+          inputs.forEach(input => {
+              input.addEventListener('input', updatePreview);
+              input.addEventListener('change', updatePreview);
+          });
+
+          // Add button event listeners
+          document.getElementById('loadBtn').addEventListener('click', loadCurrentTotals);
+          document.getElementById('resetBtn').addEventListener('click', resetBaseTotals);
+      });
         
         function updatePreview() {
             console.log('Updating preview...');
@@ -657,50 +669,50 @@
             
             // Update FB Ad section (GREEN TABLE)
             document.getElementById('fbEnquiryChange').textContent = formatChange(fbEnquiryChange);
-            document.getElementById('fbEnquiryTotal').textContent = fbBaseTotals.enquiry + fbEnquiryChange;
+            document.getElementById('fbEnquiryTotal').textContent = currentBaseTotals.fb.enquiry + fbEnquiryChange;
             
             document.getElementById('fbFollowupChange').textContent = formatChange(fbFollowupChange);
-            document.getElementById('fbFollowupTotal').textContent = fbBaseTotals.followup + fbFollowupChange;
+            document.getElementById('fbFollowupTotal').textContent = currentBaseTotals.fb.followup + fbFollowupChange;
             
             document.getElementById('fbWaitingChange').textContent = formatChange(fbWaitingChange);
-            document.getElementById('fbWaitingTotal').textContent = fbBaseTotals.waiting + fbWaitingChange;
+            document.getElementById('fbWaitingTotal').textContent = currentBaseTotals.fb.waiting + fbWaitingChange;
             
             document.getElementById('fbNoreplyChange').textContent = formatChange(fbNoreplyChange);
-            document.getElementById('fbNoreplyTotal').textContent = fbBaseTotals.noreply + fbNoreplyChange;
+            document.getElementById('fbNoreplyTotal').textContent = currentBaseTotals.fb.noreply + fbNoreplyChange;
             
             document.getElementById('fbDropChange').textContent = formatChange(fbDropChange);
-            document.getElementById('fbDropTotal').textContent = fbBaseTotals.drop + fbDropChange;
+            document.getElementById('fbDropTotal').textContent = currentBaseTotals.fb.drop + fbDropChange;
             
             // Green table shows CUSTOMERS who bought (not products sold)
             document.getElementById('fbClosedCustomersChange').textContent = formatChange(fbClosedCustomersChange);
-            document.getElementById('fbClosedCustomersTotal').textContent = fbBaseTotals.closedCustomers + fbClosedCustomersChange;
+            document.getElementById('fbClosedCustomersTotal').textContent = currentBaseTotals.fb.closedCustomers + fbClosedCustomersChange;
             
             // Update Organic section (GREEN TABLE)
             document.getElementById('organicEnquiryChange').textContent = formatChange(organicEnquiryChange);
-            document.getElementById('organicEnquiryTotal').textContent = organicBaseTotals.enquiry + organicEnquiryChange;
+            document.getElementById('organicEnquiryTotal').textContent = currentBaseTotals.organic.enquiry + organicEnquiryChange;
             
             document.getElementById('organicFollowupChange').textContent = formatChange(organicFollowupChange);
-            document.getElementById('organicFollowupTotal').textContent = organicBaseTotals.followup + organicFollowupChange;
+            document.getElementById('organicFollowupTotal').textContent = currentBaseTotals.organic.followup + organicFollowupChange;
             
             document.getElementById('organicWaitingChange').textContent = formatChange(organicWaitingChange);
-            document.getElementById('organicWaitingTotal').textContent = organicBaseTotals.waiting + organicWaitingChange;
+            document.getElementById('organicWaitingTotal').textContent = currentBaseTotals.organic.waiting + organicWaitingChange;
             
             document.getElementById('organicNoreplyChange').textContent = formatChange(organicNoreplyChange);
-            document.getElementById('organicNoreplyTotal').textContent = organicBaseTotals.noreply + organicNoreplyChange;
+            document.getElementById('organicNoreplyTotal').textContent = currentBaseTotals.organic.noreply + organicNoreplyChange;
             
             document.getElementById('organicDropChange').textContent = formatChange(organicDropChange);
-            document.getElementById('organicDropTotal').textContent = organicBaseTotals.drop + organicDropChange;
+            document.getElementById('organicDropTotal').textContent = currentBaseTotals.organic.drop + organicDropChange;
             
             // Green table shows CUSTOMERS who bought (not products sold)
             document.getElementById('organicClosedCustomersChange').textContent = formatChange(organicClosedCustomersChange);
-            document.getElementById('organicClosedCustomersTotal').textContent = organicBaseTotals.closedCustomers + organicClosedCustomersChange;
+            document.getElementById('organicClosedCustomersTotal').textContent = currentBaseTotals.organic.closedCustomers + organicClosedCustomersChange;
             
             // Calculate totals for BLUE TABLE (sales calculations) - PRODUCTS sold
-            const fbTotalClosedB3F1 = fbBaseTotals.closedB3F1 + fbClosedB3F1Change;
-            const fbTotalClosedSingle = fbBaseTotals.closedSingle + fbClosedSingleChange;
+            const fbTotalClosedB3F1 = currentBaseTotals.fb.closedB3F1 + fbClosedB3F1Change;
+            const fbTotalClosedSingle = currentBaseTotals.fb.closedSingle + fbClosedSingleChange;
             
-            const organicTotalClosedB3F1 = organicBaseTotals.closedB3F1 + organicClosedB3F1Change;
-            const organicTotalClosedSingle = organicBaseTotals.closedSingle + organicClosedSingleChange;
+            const organicTotalClosedB3F1 = currentBaseTotals.organic.closedB3F1 + organicClosedB3F1Change;
+            const organicTotalClosedSingle = currentBaseTotals.organic.closedSingle + organicClosedSingleChange;
             
             // Update BLUE TABLE (sales sections) - shows PRODUCTS sold
             const fbB3F1SalesAmount = fbTotalClosedB3F1 * 487;
@@ -727,20 +739,20 @@
             document.getElementById('organicSalesSingleTotal').textContent = organicTotalClosedSingle;
             document.getElementById('organicSalesSingleAmount').textContent = organicSingleSalesAmount.toLocaleString('en-MY', {minimumFractionDigits: 2});
 
-            // FIXED: For percentage calculations - use CLOSED CUSTOMERS vs total enquiries
-            const fbTotalEnquiry = fbBaseTotals.enquiry + fbEnquiryChange;
-            const fbTotalClosedCustomers = fbBaseTotals.closedCustomers + fbClosedCustomersChange;
+            // Calculate percentage using CLOSED CUSTOMERS vs total enquiries
+            const fbTotalEnquiry = currentBaseTotals.fb.enquiry + fbEnquiryChange;
+            const fbTotalClosedCustomers = currentBaseTotals.fb.closedCustomers + fbClosedCustomersChange;
             const fbClosedPercentage = fbTotalEnquiry > 0 
                 ? ((fbTotalClosedCustomers / fbTotalEnquiry) * 100).toFixed(2) 
                 : 0;
 
-            const organicTotalEnquiry = organicBaseTotals.enquiry + organicEnquiryChange;
-            const organicTotalClosedCustomers = organicBaseTotals.closedCustomers + organicClosedCustomersChange;
+            const organicTotalEnquiry = currentBaseTotals.organic.enquiry + organicEnquiryChange;
+            const organicTotalClosedCustomers = currentBaseTotals.organic.closedCustomers + organicClosedCustomersChange;
             const organicClosedPercentage = organicTotalEnquiry > 0 
                 ? ((organicTotalClosedCustomers / organicTotalEnquiry) * 100).toFixed(2) 
                 : 0;
 
-            // FIXED: Formula shows CLOSED CUSTOMERS, not B3F1 sets
+            // Formula shows CLOSED CUSTOMERS, not B3F1 sets
             document.getElementById('fbClosedFormula').textContent = `${fbTotalClosedCustomers}(${formatChange(fbClosedCustomersChange)})/${fbTotalEnquiry}`;
             document.getElementById('fbClosedPercentage').textContent = fbClosedPercentage + "%";
             document.getElementById('fbTotalAmount').innerHTML = `<strong>${fbTotalAmount.toLocaleString('en-MY', {minimumFractionDigits: 2})}</strong>`;
@@ -758,12 +770,12 @@
             const totalClosedCustomersChange = fbClosedCustomersChange + organicClosedCustomersChange;
             
             // Calculate current totals for simple summary
-            const simpleEnquiryTotal = (fbBaseTotals.enquiry + organicBaseTotals.enquiry) + totalEnquiryChange;
-            const simpleFollowupTotal = (fbBaseTotals.followup + organicBaseTotals.followup) + totalFollowupChange;
-            const simpleWaitingTotal = (fbBaseTotals.waiting + organicBaseTotals.waiting) + totalWaitingChange;
-            const simpleNoreplyTotal = (fbBaseTotals.noreply + organicBaseTotals.noreply) + totalNoreplyChange;
-            const simpleDropTotal = (fbBaseTotals.drop + organicBaseTotals.drop) + totalDropChange;
-            const simpleClosedTotal = (fbBaseTotals.closedCustomers + organicBaseTotals.closedCustomers) + totalClosedCustomersChange;
+            const simpleEnquiryTotal = (currentBaseTotals.fb.enquiry + currentBaseTotals.organic.enquiry) + totalEnquiryChange;
+            const simpleFollowupTotal = (currentBaseTotals.fb.followup + currentBaseTotals.organic.followup) + totalFollowupChange;
+            const simpleWaitingTotal = (currentBaseTotals.fb.waiting + currentBaseTotals.organic.waiting) + totalWaitingChange;
+            const simpleNoreplyTotal = (currentBaseTotals.fb.noreply + currentBaseTotals.organic.noreply) + totalNoreplyChange;
+            const simpleDropTotal = (currentBaseTotals.fb.drop + currentBaseTotals.organic.drop) + totalDropChange;
+            const simpleClosedTotal = (currentBaseTotals.fb.closedCustomers + currentBaseTotals.organic.closedCustomers) + totalClosedCustomersChange;
             
             document.getElementById('simpleEnquiry').textContent = formatChange(totalEnquiryChange);
             document.getElementById('simpleEnquiryTotal').textContent = simpleEnquiryTotal;
@@ -794,26 +806,26 @@
         }
         
         function collectFormData() {
-    return {
-        fbEnquiry: document.getElementById('fbEnquiry').value,
-        fbFollowup: document.getElementById('fbFollowup').value,
-        fbWaiting: document.getElementById('fbWaiting').value,
-        fbNoreply: document.getElementById('fbNoreply').value,
-        fbDrop: document.getElementById('fbDrop').value,
-        fbClosedCustomers: document.getElementById('fbClosedCustomers').value,
-        fbClosedB3F1: document.getElementById('fbClosedB3F1').value,
-        fbClosedSingle: document.getElementById('fbClosedSingle').value,
+            return {
+                fbEnquiry: document.getElementById('fbEnquiry').value,
+                fbFollowup: document.getElementById('fbFollowup').value,
+                fbWaiting: document.getElementById('fbWaiting').value,
+                fbNoreply: document.getElementById('fbNoreply').value,
+                fbDrop: document.getElementById('fbDrop').value,
+                fbClosedCustomers: document.getElementById('fbClosedCustomers').value,
+                fbClosedB3F1: document.getElementById('fbClosedB3F1').value,
+                fbClosedSingle: document.getElementById('fbClosedSingle').value,
 
-        organicEnquiry: document.getElementById('organicEnquiry').value,
-        organicFollowup: document.getElementById('organicFollowup').value,
-        organicWaiting: document.getElementById('organicWaiting').value,
-        organicNoreply: document.getElementById('organicNoreply').value,
-        organicDrop: document.getElementById('organicDrop').value,
-        organicClosedCustomers: document.getElementById('organicClosedCustomers').value,
-        organicClosedB3F1: document.getElementById('organicClosedB3F1').value,
-        organicClosedSingle: document.getElementById('organicClosedSingle').value,
-    };
-}
+                organicEnquiry: document.getElementById('organicEnquiry').value,
+                organicFollowup: document.getElementById('organicFollowup').value,
+                organicWaiting: document.getElementById('organicWaiting').value,
+                organicNoreply: document.getElementById('organicNoreply').value,
+                organicDrop: document.getElementById('organicDrop').value,
+                organicClosedCustomers: document.getElementById('organicClosedCustomers').value,
+                organicClosedB3F1: document.getElementById('organicClosedB3F1').value,
+                organicClosedSingle: document.getElementById('organicClosedSingle').value,
+            };
+        }
 
         
         document.getElementById('salesForm').addEventListener('submit', function(e) {
@@ -835,14 +847,14 @@
                         submitBtn.disabled = false;
                         submitBtn.textContent = 'Submit & Update Data';
                         
-                        // Update base totals with the submitted data
-                        updateBaseTotals(formData);
+                        // Refresh base totals from server after successful submission
+                        loadCurrentTotals();
                         
                         messageDiv.className = 'message success';
                         messageDiv.textContent = response.message || 'Data saved and base totals updated successfully!';
                         messageDiv.style.display = 'block';
                         
-                        // Reset form inputs but keep the updated base totals
+                        // Reset form inputs
                         document.getElementById('salesForm').reset();
                         const inputs = document.querySelectorAll('input[type="number"]');
                         inputs.forEach(input => input.value = '0');
@@ -865,19 +877,35 @@
                     })
                     .submitData(formData);
             } else {
-                // Simulate submission for demo
+                // Demo mode - simulate server behavior
                 setTimeout(() => {
+                    // Update local base totals for demo
+                    currentBaseTotals.fb.enquiry += parseInt(formData.fbEnquiry || 0);
+                    currentBaseTotals.fb.followup += parseInt(formData.fbFollowup || 0);
+                    currentBaseTotals.fb.waiting += parseInt(formData.fbWaiting || 0);
+                    currentBaseTotals.fb.noreply += parseInt(formData.fbNoreply || 0);
+                    currentBaseTotals.fb.drop += parseInt(formData.fbDrop || 0);
+                    currentBaseTotals.fb.closedCustomers += parseInt(formData.fbClosedCustomers || 0);
+                    currentBaseTotals.fb.closedB3F1 += parseInt(formData.fbClosedB3F1 || 0);
+                    currentBaseTotals.fb.closedSingle += parseInt(formData.fbClosedSingle || 0);
+                    
+                    currentBaseTotals.organic.enquiry += parseInt(formData.organicEnquiry || 0);
+                    currentBaseTotals.organic.followup += parseInt(formData.organicFollowup || 0);
+                    currentBaseTotals.organic.waiting += parseInt(formData.organicWaiting || 0);
+                    currentBaseTotals.organic.noreply += parseInt(formData.organicNoreply || 0);
+                    currentBaseTotals.organic.drop += parseInt(formData.organicDrop || 0);
+                    currentBaseTotals.organic.closedCustomers += parseInt(formData.organicClosedCustomers || 0);
+                    currentBaseTotals.organic.closedB3F1 += parseInt(formData.organicClosedB3F1 || 0);
+                    currentBaseTotals.organic.closedSingle += parseInt(formData.organicClosedSingle || 0);
+                    
                     submitBtn.disabled = false;
                     submitBtn.textContent = 'Submit & Update Data';
-                    
-                    // Update base totals with the submitted data
-                    updateBaseTotals(formData);
                     
                     messageDiv.className = 'message success';
                     messageDiv.textContent = 'Data saved and base totals updated successfully! (Demo mode)';
                     messageDiv.style.display = 'block';
                     
-                    // Reset form inputs but keep the updated base totals
+                    // Reset form inputs
                     document.getElementById('salesForm').reset();
                     const inputs = document.querySelectorAll('input[type="number"]');
                     inputs.forEach(input => input.value = '0');
