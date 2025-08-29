@@ -1,0 +1,168 @@
+function onNewRow(e) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Sheet1");
+  
+  var row;
+  if (e && e.range) {
+    row = e.range.getRow();
+  } else {
+    // ✅ For manual testing, find the last row with data
+    row = sheet.getLastRow();
+  }
+  
+  // Skip if it's the header row
+  if (row === 1) return;
+  
+  // ✅ Better data reading with error checking
+  var name = "";
+  var email = "";
+  var phone = "";
+  var dob = "";
+  
+  try {
+    name = sheet.getRange(row, 1).getValue();     // Col A: Name
+    email = sheet.getRange(row, 2).getValue();    // Col B: Email  
+    phone = sheet.getRange(row, 3).getValue();    // Col C: Phone
+    dob = sheet.getRange(row, 4).getValue();      // Col D: DOB
+  } catch (error) {
+    console.error("Error reading from sheet:", error);
+    return;
+  }
+
+  // ✅ Debug: Check what values we're getting from the sheet
+  console.log("=== DEBUG INFO ===");
+  console.log("Sheet name: " + sheet.getName());
+  console.log("Processing row: " + row);
+  console.log("Last row with data: " + sheet.getLastRow());
+  console.log("Raw name value: '" + name + "' (type: " + typeof name + ")");
+  console.log("Raw email value: '" + email + "'");
+  console.log("Raw phone value: '" + phone + "'");
+  console.log("Raw dob value: '" + dob + "'");
+  
+  // ✅ Convert values to strings and handle empty cells
+  name = name ? String(name).trim() : "";
+  email = email ? String(email).trim() : "";
+  phone = phone ? String(phone).trim() : "";
+  dob = dob ? String(dob).trim() : "";
+  
+  console.log("After processing:");
+  console.log("Name: '" + name + "'");
+  console.log("Email: '" + email + "'");
+  console.log("Phone: '" + phone + "'");
+  console.log("DOB: '" + dob + "'");
+  
+  // ✅ Stop if no name provided
+  if (!name) {
+    console.error("❌ No name found in row " + row + ", column A");
+    sheet.getRange(row, 5).setValue("❌ Error: No name in column A");
+    return;
+  }
+
+  var store = "pv7d4a-gf.myshopify.com";   
+  var token = "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";
+
+  // --- Step 1: Check if customer exists by email ---
+  var customerId = null;
+  var existingCustomer = null;
+  if (email) {
+    var searchUrl = "https://" + store + "/admin/api/2025-01/customers/search.json?query=email:" + encodeURIComponent(email);
+    var searchOptions = {
+      "method": "get",
+      "headers": { "X-Shopify-Access-Token": token },
+      "muteHttpExceptions": true
+    };
+    var searchResponse = UrlFetchApp.fetch(searchUrl, searchOptions);
+    console.log("Customer search response:", searchResponse.getContentText()); // Debug log
+    var searchData = JSON.parse(searchResponse.getContentText());
+    if (searchData.customers && searchData.customers.length > 0) {
+      existingCustomer = searchData.customers[0];
+      customerId = existingCustomer.id;
+      console.log("Found existing customer:", existingCustomer.first_name + " " + existingCustomer.last_name);
+    } else {
+      console.log("No existing customer found, will create new one");
+    }
+  }
+
+  // --- Step 2: Build Draft Order payload ---
+  var customerData = {};
+  
+  // If existing customer found, use their ID
+  if (customerId) {
+    customerData = { "id": customerId };
+  } else if (email) {
+    // For new customers, only provide email (let Shopify create the customer)
+    customerData = { "email": email };
+  }
+
+  var payload = {
+    "draft_order": {
+      "line_items": [
+        {
+          "variant_id": 44953867616435,
+          "quantity": 1,
+          "price": "200.00",
+          "title": "Wallet 2026"
+        }
+      ],
+      
+      // ✅ Only include customer if we have data
+      ...(Object.keys(customerData).length > 0 && { "customer": customerData }),
+      
+      // ✅ Billing address with full name
+      "billing_address": {
+        "first_name": name || "Customer",
+        "last_name": "",
+        "phone": phone || "",
+        "address1": "N/A",
+        "city": "Kuala Lumpur", 
+        "country": "Malaysia"
+      },
+      
+      // ✅ Shipping address with full name
+      "shipping_address": {
+        "first_name": name || "Customer",
+        "last_name": "",
+        "phone": phone || "",
+        "address1": "N/A",
+        "city": "Kuala Lumpur",
+        "country": "Malaysia" 
+      },
+
+      // ✅ Put customer name and DOB in notes (this should always work)
+      "note": "Customer: " + (name || "Name not provided") + (dob ? " | DOB: " + dob : "") + (email ? " | Email: " + email : ""),
+      
+      // ✅ Add tag for tracking
+      "tags": "sheet-import"
+    }
+  };
+
+  // --- Step 3: Create Draft Order ---
+  var url = "https://" + store + "/admin/api/2025-01/draft_orders.json";
+  var options = {
+    "method": "post",
+    "headers": {
+      "X-Shopify-Access-Token": token,
+      "Content-Type": "application/json"
+    },
+    "payload": JSON.stringify(payload),
+    "muteHttpExceptions": true
+  };
+
+  var response = UrlFetchApp.fetch(url, options);
+  var data = JSON.parse(response.getContentText());
+
+  if (data.draft_order) {
+    sheet.getRange(row, 5).setValue(data.draft_order.id);          // Col E: ID
+    sheet.getRange(row, 6).setValue(data.draft_order.invoice_url); // Col F: Invoice link
+    
+    // ✅ Debug logging
+    console.log("✅ Draft order created successfully!");
+    console.log("Customer name: " + name);
+    console.log("Draft order ID: " + data.draft_order.id);
+    console.log("Note content: " + data.draft_order.note);
+  } else {
+    var errorMsg = "❌ Error: " + (data.errors ? JSON.stringify(data.errors) : response.getContentText());
+    sheet.getRange(row, 5).setValue(errorMsg);
+    console.error("❌ Failed to create draft order for: " + name);
+    console.error("Response:", response.getContentText());
+  }
+}
