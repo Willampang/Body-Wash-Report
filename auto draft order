@@ -1,66 +1,161 @@
+// Helper function to format birthday and remove time
+function formatBirthday(birthday) {
+  if (!birthday) return "";
+  
+  try {
+    var date;
+    if (birthday instanceof Date) {
+      date = birthday;
+    } else {
+      date = new Date(birthday);
+    }
+    
+    if (isNaN(date.getTime())) {
+      return String(birthday); // Return original if not a valid date
+    }
+    
+    // Format as readable date without time
+    var options = { year: 'numeric', month: 'long', day: 'numeric' };
+    return date.toLocaleDateString('en-US', options);
+  } catch (e) {
+    return String(birthday); // Return original if formatting fails
+  }
+}
+
 function onNewRow(e) {
-  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Sheet1");
+  var spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  if (!spreadsheet) return;
+  
+  var sheet = spreadsheet.getSheetByName("Sheet1");
+  if (!sheet) sheet = spreadsheet.getSheets()[0];
+  if (!sheet) return;
   
   var row;
   if (e && e.range) {
     row = e.range.getRow();
   } else {
-    // ✅ For manual testing, find the last row with data
-    row = sheet.getLastRow();
+    var lastRow = sheet.getLastRow();
+    if (lastRow <= 1) return;
+    row = lastRow;
   }
-  
-  // Skip if it's the header row
   if (row === 1) return;
   
-  // ✅ Better data reading with error checking
   var name = "";
   var email = "";
+  var streetAddress = "";
+  var city = "";
+  var state = "";
+  var country = "";
+  var postalCode = "";
   var phone = "";
-  var dob = "";
+  var qty丰盛款 = 0;
+  var qty富豪款 = 0;
+  var qty吸金款 = 0;
   
   try {
-    name = sheet.getRange(row, 1).getValue();     // Col A: Name
-    email = sheet.getRange(row, 2).getValue();    // Col B: Email  
-    phone = sheet.getRange(row, 3).getValue();    // Col C: Phone
-    dob = sheet.getRange(row, 4).getValue();      // Col D: DOB
+    name = sheet.getRange(row, 1).getValue();           // Col A: Name
+    email = sheet.getRange(row, 2).getValue();          // Col B: Email  
+    streetAddress = sheet.getRange(row, 3).getValue();  // Col C: Street Address
+    city = sheet.getRange(row, 4).getValue();           // Col D: City
+    state = sheet.getRange(row, 5).getValue();          // Col E: State
+    country = sheet.getRange(row, 6).getValue();        // Col F: Country
+    postalCode = sheet.getRange(row, 7).getValue();     // Col G: Postal Code
+    phone = sheet.getRange(row, 8).getValue();          // Col H: Phone
+    qty丰盛款 = sheet.getRange(row, 9).getValue();       // Col I: 丰盛款
+    qty富豪款 = sheet.getRange(row, 10).getValue();      // Col J: 富豪款
+    qty吸金款 = sheet.getRange(row, 11).getValue();      // Col K: 吸金款
   } catch (error) {
-    console.error("Error reading from sheet:", error);
+    sheet.getRange(row, 12).setValue("Read Error: " + error.message);
     return;
   }
-
-  // ✅ Debug: Check what values we're getting from the sheet
-  console.log("=== DEBUG INFO ===");
-  console.log("Sheet name: " + sheet.getName());
-  console.log("Processing row: " + row);
-  console.log("Last row with data: " + sheet.getLastRow());
-  console.log("Raw name value: '" + name + "' (type: " + typeof name + ")");
-  console.log("Raw email value: '" + email + "'");
-  console.log("Raw phone value: '" + phone + "'");
-  console.log("Raw dob value: '" + dob + "'");
   
-  // ✅ Convert values to strings and handle empty cells
   name = name ? String(name).trim() : "";
   email = email ? String(email).trim() : "";
+  streetAddress = streetAddress ? String(streetAddress).trim() : "";
+  city = city ? String(city).trim() : "";
+  state = state ? String(state).trim() : "";
+  country = country ? String(country).trim() : "";
+  postalCode = postalCode ? String(postalCode).trim() : "";
   phone = phone ? String(phone).trim() : "";
-  dob = dob ? String(dob).trim() : "";
   
-  console.log("After processing:");
-  console.log("Name: '" + name + "'");
-  console.log("Email: '" + email + "'");
-  console.log("Phone: '" + phone + "'");
-  console.log("DOB: '" + dob + "'");
+  qty丰盛款 = Number(qty丰盛款) || 0;
+  qty富豪款 = Number(qty富豪款) || 0;
+  qty吸金款 = Number(qty吸金款) || 0;
   
-  // ✅ Stop if no name provided
   if (!name) {
-    console.error("❌ No name found in row " + row + ", column A");
-    sheet.getRange(row, 5).setValue("❌ Error: No name in column A");
+    sheet.getRange(row, 12).setValue("Error: No name");
     return;
   }
 
-  var store = "pv7d4a-gf.myshopify.com";   
-  var token = "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";
+  if (!email) {
+    sheet.getRange(row, 12).setValue("Error: No email provided");
+    return;
+  }
 
-  // --- Step 1: Check if customer exists by email ---
+  if (qty丰盛款 <= 0 && qty富豪款 <= 0 && qty吸金款 <= 0) {
+    sheet.getRange(row, 12).setValue("No products ordered");
+    return;
+  }
+
+  // 🔍 NEW LOGIC: Skip birthday check if 富豪款 qty is exactly 1
+  var skipBirthdayCheck = (qty富豪款 === 1);
+  var customerEmails = [];
+  var customerBirthdays = [];
+  var emailFoundInBirthdaySheet = true; // Default to true when skipping check
+  
+  if (!skipBirthdayCheck) {
+    // Original birthday sheet check logic
+    emailFoundInBirthdaySheet = false;
+    
+    var birthdaySheet = spreadsheet.getSheetByName("顾客生日");
+    if (!birthdaySheet) {
+      sheet.getRange(row, 12).setValue("Error: 顾客生日 sheet not found");
+      return;
+    }
+    
+    var bLastRow = birthdaySheet.getLastRow();
+    if (bLastRow > 1) {
+      var bData = birthdaySheet.getRange(2, 1, bLastRow - 1, 4).getValues(); 
+      // Col1 = Email1, Col2 = Birthday1, Col3 = Email2, Col4 = Birthday2
+      for (var i = 0; i < bData.length; i++) {
+        var bEmail1 = bData[i][0] ? String(bData[i][0]).trim() : "";
+        var bBirthday1 = bData[i][1];
+        var bEmail2 = bData[i][2] ? String(bData[i][2]).trim() : "";
+        var bBirthday2 = bData[i][3];
+        
+        // Check if the input email matches either email1 or email2
+        if ((bEmail1 && bEmail1.toLowerCase() === email.toLowerCase()) || 
+            (bEmail2 && bEmail2.toLowerCase() === email.toLowerCase())) {
+          emailFoundInBirthdaySheet = true;
+          
+          // Collect all emails for this customer
+          if (bEmail1) customerEmails.push(bEmail1);
+          if (bEmail2) customerEmails.push(bEmail2);
+          
+          // Collect all birthdays and format them (remove time)
+          if (bBirthday1) {
+            var formattedBirthday1 = formatBirthday(bBirthday1);
+            if (formattedBirthday1) customerBirthdays.push(formattedBirthday1);
+          }
+          if (bBirthday2) {
+            var formattedBirthday2 = formatBirthday(bBirthday2);
+            if (formattedBirthday2) customerBirthdays.push(formattedBirthday2);
+          }
+          break;
+        }
+      }
+    }
+    
+    // ❌ STOP PROCESSING if email not found in 顾客生日 sheet (only when not skipping check)
+    if (!emailFoundInBirthdaySheet) {
+      sheet.getRange(row, 12).setValue("Email not found in 顾客生日 sheet - Order not created");
+      return;
+    }
+  }
+
+  var store = "0xu0h7-qd.myshopify.com";   
+  var token = "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";
+
   var customerId = null;
   var existingCustomer = null;
   if (email) {
@@ -71,71 +166,114 @@ function onNewRow(e) {
       "muteHttpExceptions": true
     };
     var searchResponse = UrlFetchApp.fetch(searchUrl, searchOptions);
-    console.log("Customer search response:", searchResponse.getContentText()); // Debug log
     var searchData = JSON.parse(searchResponse.getContentText());
     if (searchData.customers && searchData.customers.length > 0) {
       existingCustomer = searchData.customers[0];
       customerId = existingCustomer.id;
-      console.log("Found existing customer:", existingCustomer.first_name + " " + existingCustomer.last_name);
-    } else {
-      console.log("No existing customer found, will create new one");
     }
   }
 
-  // --- Step 2: Build Draft Order payload ---
-  var customerData = {};
+  var lineItems = [];
   
-  // If existing customer found, use their ID
+  var products = {
+    "丰盛款": { variant_id: 42412424659078, price: "496.00", title: "丰盛款" },
+    "富豪款": { variant_id: 42412425150598, price: "397.00", title: "富豪款" },
+    "吸金款": { variant_id: 42412426166406, price: "196.00", title: "吸金款" }
+  };
+  
+  if (qty丰盛款 > 0) {
+    lineItems.push({
+      "variant_id": products["丰盛款"].variant_id,
+      "quantity": qty丰盛款,
+      "price": products["丰盛款"].price,
+      "title": products["丰盛款"].title
+    });
+  }
+  
+  if (qty富豪款 > 0) {
+    lineItems.push({
+      "variant_id": products["富豪款"].variant_id,
+      "quantity": qty富豪款,
+      "price": products["富豪款"].price,
+      "title": products["富豪款"].title
+    });
+  }
+  
+  if (qty吸金款 > 0) {
+    lineItems.push({
+      "variant_id": products["吸金款"].variant_id,
+      "quantity": qty吸金款,
+      "price": products["吸金款"].price,
+      "title": products["吸金款"].title
+    });
+  }
+
+  var customerData = {};
   if (customerId) {
     customerData = { "id": customerId };
   } else if (email) {
-    // For new customers, only provide email (let Shopify create the customer)
     customerData = { "email": email };
+  }
+
+  var noteText = "Customer: " + (name || "Name not provided");
+  
+  // Remove duplicate emails and filter out the main email from customer emails list
+  var uniqueCustomerEmails = [];
+  for (var j = 0; j < customerEmails.length; j++) {
+    var customerEmail = customerEmails[j];
+    if (customerEmail.toLowerCase() !== email.toLowerCase() && 
+        uniqueCustomerEmails.indexOf(customerEmail) === -1) {
+      uniqueCustomerEmails.push(customerEmail);
+    }
+  }
+  
+  // Add main email on new line
+  if (email) {
+    noteText += "\nEmail: " + email;
+  }
+  
+  // Add additional customer emails on new line (if any, excluding main email)
+  if (uniqueCustomerEmails.length > 0) {
+    noteText += "\nAdditional Emails: " + uniqueCustomerEmails.join(", ");
+  }
+  
+  // Add birthdays on new line (only if not skipped)
+  if (!skipBirthdayCheck && customerBirthdays.length > 0) {
+    noteText += "\nBirthdays: " + customerBirthdays.join(", ");
   }
 
   var payload = {
     "draft_order": {
-      "line_items": [
-        {
-          "variant_id": 44953867616435,
-          "quantity": 1,
-          "price": "200.00",
-          "title": "Wallet 2026"
-        }
-      ],
-      
-      // ✅ Only include customer if we have data
-      ...(Object.keys(customerData).length > 0 && { "customer": customerData }),
-      
-      // ✅ Billing address with full name
+      "line_items": lineItems,
       "billing_address": {
         "first_name": name || "Customer",
         "last_name": "",
         "phone": phone || "",
-        "address1": "N/A",
-        "city": "Kuala Lumpur", 
-        "country": "Malaysia"
+        "address1": streetAddress || "N/A",
+        "city": city || "Kuala Lumpur", 
+        "province": state || "",
+        "country": country || "Malaysia",
+        "zip": postalCode || ""
       },
-      
-      // ✅ Shipping address with full name
       "shipping_address": {
         "first_name": name || "Customer",
         "last_name": "",
         "phone": phone || "",
-        "address1": "N/A",
-        "city": "Kuala Lumpur",
-        "country": "Malaysia" 
+        "address1": streetAddress || "N/A",
+        "city": city || "Kuala Lumpur",
+        "province": state || "",
+        "country": country || "Malaysia",
+        "zip": postalCode || ""
       },
-
-      // ✅ Put customer name and DOB in notes (this should always work)
-      "note": "Customer: " + (name || "Name not provided") + (dob ? " | DOB: " + dob : "") + (email ? " | Email: " + email : ""),
-      
-      // ✅ Add tag for tracking
-      "tags": "sheet-import"
+      "note": noteText,
     }
   };
 
-  // --- Step 3: Create Draft Order ---
+  // Add customer data if available (Google Apps Script doesn't support spread operator)
+  if (Object.keys(customerData).length > 0) {
+    payload.draft_order.customer = customerData;
+  }
+
   var url = "https://" + store + "/admin/api/2025-01/draft_orders.json";
   var options = {
     "method": "post",
@@ -151,18 +289,9 @@ function onNewRow(e) {
   var data = JSON.parse(response.getContentText());
 
   if (data.draft_order) {
-    sheet.getRange(row, 5).setValue(data.draft_order.id);          // Col E: ID
-    sheet.getRange(row, 6).setValue(data.draft_order.invoice_url); // Col F: Invoice link
-    
-    // ✅ Debug logging
-    console.log("✅ Draft order created successfully!");
-    console.log("Customer name: " + name);
-    console.log("Draft order ID: " + data.draft_order.id);
-    console.log("Note content: " + data.draft_order.note);
+    sheet.getRange(row, 12).setValue(data.draft_order.id);
   } else {
-    var errorMsg = "❌ Error: " + (data.errors ? JSON.stringify(data.errors) : response.getContentText());
-    sheet.getRange(row, 5).setValue(errorMsg);
-    console.error("❌ Failed to create draft order for: " + name);
-    console.error("Response:", response.getContentText());
+    var errorMsg = "Error: " + (data.errors ? JSON.stringify(data.errors) : response.getContentText());
+    sheet.getRange(row, 12).setValue(errorMsg);
   }
 }
