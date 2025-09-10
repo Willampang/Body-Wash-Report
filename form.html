@@ -227,43 +227,33 @@
                         <h3>FB Ad (Messenger)</h3>
                         <div class="form-group">
                             <label for="fbEnquiry">Enquiry:</label>
-                            <input type="number" id="fbEnquiry" name="fbEnquiry" min="0" value="0" required>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="fbFollowup">Follow Up:</label>
-                            <input type="number" id="fbFollowup" name="fbFollowup" min="0" value="0" required>
+                            <input type="number" id="fbEnquiry" name="fbEnquiry" value="0" required>
                         </div>
                         
                         <div class="form-group">
                             <label for="fbWaiting">Waiting Payment:</label>
-                            <input type="number" id="fbWaiting" name="fbWaiting" min="0" value="0" required>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="fbNoreply">No Reply:</label>
-                            <input type="number" id="fbNoreply" name="fbNoreply" min="0" value="0" required>
+                            <input type="number" id="fbWaiting" name="fbWaiting" value="0" required>
                         </div>
                         
                         <div class="form-group">
                             <label for="fbDrop">Drop:</label>
-                            <input type="number" id="fbDrop" name="fbDrop" min="0" value="0" required>
+                            <input type="number" id="fbDrop" name="fbDrop"  value="0" required>
                         </div>
                         
                         <div class="form-group">
                             <label for="fbClosedCustomers">Closed (Customers):</label>
-                            <input type="number" id="fbClosedCustomers" name="fbClosedCustomers" min="0" value="0" required>
+                            <input type="number" id="fbClosedCustomers" name="fbClosedCustomers"  value="0" required>
                         </div>
                         
                         <div class="form-row">
                             <div class="form-group">
                                 <label for="fbClosedB3F1">B3F1 Sets Sold:</label>
-                                <input type="number" id="fbClosedB3F1" name="fbClosedB3F1" min="0" value="0" required>
+                                <input type="number" id="fbClosedB3F1" name="fbClosedB3F1" value="0" required>
                             </div>
                             
                             <div class="form-group">
                                 <label for="fbClosedSingle">Single Bottles:</label>
-                                <input type="number" id="fbClosedSingle" name="fbClosedSingle" min="0" value="0" required>
+                                <input type="number" id="fbClosedSingle" name="fbClosedSingle"  value="0" required>
                             </div>
                         </div>
                     </div>
@@ -272,43 +262,33 @@
                         <h3>Organic</h3>
                         <div class="form-group">
                             <label for="organicEnquiry">Enquiry:</label>
-                            <input type="number" id="organicEnquiry" name="organicEnquiry" min="0" value="0" required>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="organicFollowup">Follow Up:</label>
-                            <input type="number" id="organicFollowup" name="organicFollowup" min="0" value="0" required>
+                            <input type="number" id="organicEnquiry" name="organicEnquiry"  value="0" required>
                         </div>
                         
                         <div class="form-group">
                             <label for="organicWaiting">Waiting Payment:</label>
-                            <input type="number" id="organicWaiting" name="organicWaiting" min="0" value="0" required>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="organicNoreply">No Reply:</label>
-                            <input type="number" id="organicNoreply" name="organicNoreply" min="0" value="0" required>
+                            <input type="number" id="organicWaiting" name="organicWaiting"  value="0" required>
                         </div>
                         
                         <div class="form-group">
                             <label for="organicDrop">Drop:</label>
-                            <input type="number" id="organicDrop" name="organicDrop" min="0" value="0" required>
+                            <input type="number" id="organicDrop" name="organicDrop"  value="0" required>
                         </div>
                         
                         <div class="form-group">
                             <label for="organicClosedCustomers">Closed (Customers):</label>
-                            <input type="number" id="organicClosedCustomers" name="organicClosedCustomers" min="0" value="0" required>
+                            <input type="number" id="organicClosedCustomers" name="organicClosedCustomers" value="0" required>
                         </div>
                         
                         <div class="form-row">
                             <div class="form-group">
                                 <label for="organicClosedB3F1">B3F1 Sets Sold:</label>
-                                <input type="number" id="organicClosedB3F1" name="organicClosedB3F1" min="0" value="0" required>
+                                <input type="number" id="organicClosedB3F1" name="organicClosedB3F1"  value="0" required>
                             </div>
                             
                             <div class="form-group">
                                 <label for="organicClosedSingle">Single Bottles:</label>
-                                <input type="number" id="organicClosedSingle" name="organicClosedSingle" min="0" value="0" required>
+                                <input type="number" id="organicClosedSingle" name="organicClosedSingle"  value="0" required>
                             </div>
                         </div>
                     </div>
@@ -327,16 +307,15 @@
                 <!-- Main Summary Table -->
                 <table class="summary-table">
                     <tr>
-                        <td colspan="8" class="summary-title">Mandarin Body Wash Daily Enquiry</td>
+                        <td colspan="6" class="summary-title">Mandarin Body Wash Daily Enquiry</td>
                     </tr>
                     <tr>
-                        <td colspan="8" class="summary-date" id="previewDate"></td>
+                        <td colspan="6" class="summary-date" id="previewDate"></td>
                     </tr>
                     <tr>
                         <td class="fb-ad-header">FB Ad (Messenger)</td>
                         <td class="fb-ad-header">+/-</td>
                         <td class="fb-ad-header">Total</td>
-                        <td style="border: none;"></td>
                         <td class="organic-header">Organic</td>
                         <td class="organic-header">+/-</td>
                         <td class="organic-header">Total</td>
@@ -345,43 +324,22 @@
                         <td class="fb-ad-row">Contact:</td>
                         <td class="fb-ad-row" id="fbEnquiryChange">+0</td>
                         <td class="fb-ad-row" id="fbEnquiryTotal">1254</td>
-                        <td style="border: none;"></td>
                         <td class="organic-row">Contact:</td>
                         <td class="organic-row" id="organicEnquiryChange">+0</td>
                         <td class="organic-row" id="organicEnquiryTotal">5</td>
                     </tr>
                     <tr>
-                        <td class="fb-ad-row">Follow Up:</td>
-                        <td class="fb-ad-row" id="fbFollowupChange">+0</td>
-                        <td class="fb-ad-row" id="fbFollowupTotal">688</td>
-                        <td style="border: none;"></td>
-                        <td class="organic-row">Follow Up:</td>
-                        <td class="organic-row" id="organicFollowupChange">+0</td>
-                        <td class="organic-row" id="organicFollowupTotal">0</td>
-                    </tr>
-                    <tr>
                         <td class="fb-ad-row">Waiting Payment:</td>
                         <td class="fb-ad-row" id="fbWaitingChange">+0</td>
                         <td class="fb-ad-row" id="fbWaitingTotal">8</td>
-                        <td style="border: none;"></td>
                         <td class="organic-row">Waiting Payment:</td>
                         <td class="organic-row" id="organicWaitingChange">+0</td>
                         <td class="organic-row" id="organicWaitingTotal">0</td>
                     </tr>
                     <tr>
-                        <td class="fb-ad-row">No Reply:</td>
-                        <td class="fb-ad-row" id="fbNoreplyChange">+0</td>
-                        <td class="fb-ad-row" id="fbNoreplyTotal">536</td>
-                        <td style="border: none;"></td>
-                        <td class="organic-row">No Reply:</td>
-                        <td class="organic-row" id="organicNoreplyChange">+0</td>
-                        <td class="organic-row" id="organicNoreplyTotal">0</td>
-                    </tr>
-                    <tr>
                         <td class="fb-ad-row">Drop:</td>
                         <td class="fb-ad-row" id="fbDropChange">+0</td>
                         <td class="fb-ad-row" id="fbDropTotal">7</td>
-                        <td style="border: none;"></td>
                         <td class="organic-row">Drop:</td>
                         <td class="organic-row" id="organicDropChange">+0</td>
                         <td class="organic-row" id="organicDropTotal">0</td>
@@ -390,7 +348,6 @@
                         <td class="fb-ad-row">Closed</td>
                         <td class="fb-ad-row" id="fbClosedCustomersChange">+0</td>
                         <td class="fb-ad-row" id="fbClosedCustomersTotal">34</td>
-                        <td style="border: none;"></td>
                         <td class="organic-row">Closed</td>
                         <td class="organic-row" id="organicClosedCustomersChange">+0</td>
                         <td class="organic-row" id="organicClosedCustomersTotal">5</td>
@@ -424,8 +381,8 @@
                         <td class="sales-row" id="organicSalesSingleAmount">0.00</td>
                     </tr>
                     <tr>
-                        <td class="sales-row"><strong>Total Closed</strong><br><span id="fbClosedFormula">33(+0)/1254</span></td>
-                        <td class="sales-row" id="fbClosedPercentage">2.78%</td>
+                        <td class="sales-row"><strong>Total Closed</strong><br><span id="fbClosedFormula">34(+0)/1254</span></td>
+                        <td class="sales-row" id="fbClosedPercentage">2.71%</td>
                         <td class="sales-row"></td>
                         <td class="sales-row" id="fbTotalAmount"><strong>14,638.00</strong></td>
                         <td class="sales-row"><strong>Total Closed</strong><br><span id="organicClosedFormula">5(+0)/5</span></td>
@@ -444,19 +401,11 @@
                         </tr>
                         <tr>
                             <td>Enquiry (<span id="simpleEnquiry">+0</span>)</td>
-                            <td id="simpleEnquiryTotal">1254</td>
-                        </tr>
-                        <tr>
-                            <td>Follow Up (<span id="simpleFollowup">+0</span>)</td>
-                            <td id="simpleFollowupTotal">688</td>
+                            <td id="simpleEnquiryTotal">1259</td>
                         </tr>
                         <tr>
                             <td>Waiting Payment (<span id="simpleWaiting">+0</span>)</td>
                             <td id="simpleWaitingTotal">8</td>
-                        </tr>
-                        <tr>
-                            <td>No reply (<span id="simpleNoreply">+0</span>)</td>
-                            <td id="simpleNoreplyTotal">536</td>
                         </tr>
                         <tr>
                             <td>Drop (<span id="simpleDrop">+0</span>)</td>
@@ -474,8 +423,8 @@
 
     <script>
         let currentBaseTotals = {
-            fb: { enquiry: 1254, followup: 688, waiting: 8, noreply: 536, drop: 7, closedCustomers: 34, closedB3F1: 29, closedSingle: 6 },
-            organic: { enquiry: 5, followup: 0, waiting: 0, noreply: 0, drop: 0, closedCustomers: 5, closedB3F1: 5, closedSingle: 0 }
+            fb: { enquiry: 1254, waiting: 8, drop: 7, closedCustomers: 34, closedB3F1: 29, closedSingle: 6 },
+            organic: { enquiry: 5, waiting: 0, drop: 0, closedCustomers: 5, closedB3F1: 5, closedSingle: 0 }
         };
 
         document.addEventListener('DOMContentLoaded', function() {
@@ -539,63 +488,47 @@
             document.getElementById('simpleDateHeader').textContent = dateStr;
             
             // Calculate changes for all fields
-            const fbEnquiryChange = parseInt(data.fbEnquiry || 0);
-            const fbFollowupChange = parseInt(data.fbFollowup || 0);
-            const fbWaitingChange = parseInt(data.fbWaiting || 0);
-            const fbNoreplyChange = parseInt(data.fbNoreply || 0);
-            const fbDropChange = parseInt(data.fbDrop || 0);
-            const fbClosedCustomersChange = parseInt(data.fbClosedCustomers || 0);
-            const fbClosedB3F1Change = parseInt(data.fbClosedB3F1 || 0);
-            const fbClosedSingleChange = parseInt(data.fbClosedSingle || 0);
-            
-            const organicEnquiryChange = parseInt(data.organicEnquiry || 0);
-            const organicFollowupChange = parseInt(data.organicFollowup || 0);
-            const organicWaitingChange = parseInt(data.organicWaiting || 0);
-            const organicNoreplyChange = parseInt(data.organicNoreply || 0);
-            const organicDropChange = parseInt(data.organicDrop || 0);
-            const organicClosedCustomersChange = parseInt(data.organicClosedCustomers || 0);
-            const organicClosedB3F1Change = parseInt(data.organicClosedB3F1 || 0);
-            const organicClosedSingleChange = parseInt(data.organicClosedSingle || 0);
+            const fbEnquiryChange = parseFloat(data.fbEnquiry || 0);
+            const fbWaitingChange = parseFloat(data.fbWaiting || 0);
+            const fbDropChange = parseFloat(data.fbDrop || 0);
+            const fbClosedCustomersChange = parseFloat(data.fbClosedCustomers || 0);
+            const fbClosedB3F1Change = parseFloat(data.fbClosedB3F1 || 0);
+            const fbClosedSingleChange = parseFloat(data.fbClosedSingle || 0);
+
+            const organicEnquiryChange = parseFloat(data.organicEnquiry || 0);
+            const organicWaitingChange = parseFloat(data.organicWaiting || 0);
+            const organicDropChange = parseFloat(data.organicDrop || 0);
+            const organicClosedCustomersChange = parseFloat(data.organicClosedCustomers || 0);
+            const organicClosedB3F1Change = parseFloat(data.organicClosedB3F1 || 0);
+            const organicClosedSingleChange = parseFloat(data.organicSingleChange || 0);
             
             // Update FB Ad section (GREEN TABLE)
             document.getElementById('fbEnquiryChange').textContent = formatChange(fbEnquiryChange);
-            document.getElementById('fbEnquiryTotal').textContent = currentBaseTotals.fb.enquiry + fbEnquiryChange;
-            
-            document.getElementById('fbFollowupChange').textContent = formatChange(fbFollowupChange);
-            document.getElementById('fbFollowupTotal').textContent = currentBaseTotals.fb.followup + fbFollowupChange;
+            document.getElementById('fbEnquiryTotal').textContent = Math.max(0,currentBaseTotals.fb.enquiry + fbEnquiryChange);
             
             document.getElementById('fbWaitingChange').textContent = formatChange(fbWaitingChange);
-            document.getElementById('fbWaitingTotal').textContent = currentBaseTotals.fb.waiting + fbWaitingChange;
-            
-            document.getElementById('fbNoreplyChange').textContent = formatChange(fbNoreplyChange);
-            document.getElementById('fbNoreplyTotal').textContent = currentBaseTotals.fb.noreply + fbNoreplyChange;
+            document.getElementById('fbWaitingTotal').textContent = Math.max(0,currentBaseTotals.fb.waiting + fbWaitingChange);
             
             document.getElementById('fbDropChange').textContent = formatChange(fbDropChange);
-            document.getElementById('fbDropTotal').textContent = currentBaseTotals.fb.drop + fbDropChange;
+            document.getElementById('fbDropTotal').textContent = Math.max(0,currentBaseTotals.fb.drop + fbDropChange);
             
             // Green table shows CUSTOMERS who bought (not products sold)
             document.getElementById('fbClosedCustomersChange').textContent = formatChange(fbClosedCustomersChange);
-            document.getElementById('fbClosedCustomersTotal').textContent = currentBaseTotals.fb.closedCustomers + fbClosedCustomersChange;
+            document.getElementById('fbClosedCustomersTotal').textContent = Math.max(0,currentBaseTotals.fb.closedCustomers + fbClosedCustomersChange);
             
             // Update Organic section (GREEN TABLE)
             document.getElementById('organicEnquiryChange').textContent = formatChange(organicEnquiryChange);
-            document.getElementById('organicEnquiryTotal').textContent = currentBaseTotals.organic.enquiry + organicEnquiryChange;
-            
-            document.getElementById('organicFollowupChange').textContent = formatChange(organicFollowupChange);
-            document.getElementById('organicFollowupTotal').textContent = currentBaseTotals.organic.followup + organicFollowupChange;
+            document.getElementById('organicEnquiryTotal').textContent = Math.max(0,currentBaseTotals.organic.enquiry + organicEnquiryChange);
             
             document.getElementById('organicWaitingChange').textContent = formatChange(organicWaitingChange);
-            document.getElementById('organicWaitingTotal').textContent = currentBaseTotals.organic.waiting + organicWaitingChange;
-            
-            document.getElementById('organicNoreplyChange').textContent = formatChange(organicNoreplyChange);
-            document.getElementById('organicNoreplyTotal').textContent = currentBaseTotals.organic.noreply + organicNoreplyChange;
+            document.getElementById('organicWaitingTotal').textContent = Math.max(0,currentBaseTotals.organic.waiting + organicWaitingChange);
             
             document.getElementById('organicDropChange').textContent = formatChange(organicDropChange);
-            document.getElementById('organicDropTotal').textContent = currentBaseTotals.organic.drop + organicDropChange;
+            document.getElementById('organicDropTotal').textContent = Math.max(0,currentBaseTotals.organic.drop + organicDropChange);
             
             // Green table shows CUSTOMERS who bought (not products sold)
             document.getElementById('organicClosedCustomersChange').textContent = formatChange(organicClosedCustomersChange);
-            document.getElementById('organicClosedCustomersTotal').textContent = currentBaseTotals.organic.closedCustomers + organicClosedCustomersChange;
+            document.getElementById('organicClosedCustomersTotal').textContent = Math.max(0,currentBaseTotals.organic.closedCustomers + organicClosedCustomersChange);
             
             // Calculate totals for BLUE TABLE (sales calculations) - PRODUCTS sold
             const fbTotalClosedB3F1 = currentBaseTotals.fb.closedB3F1 + fbClosedB3F1Change;
@@ -653,31 +586,21 @@
             
             // Update simple summary table (combined totals from both FB and Organic)
             const totalEnquiryChange = fbEnquiryChange + organicEnquiryChange;
-            const totalFollowupChange = fbFollowupChange + organicFollowupChange;
             const totalWaitingChange = fbWaitingChange + organicWaitingChange;
-            const totalNoreplyChange = fbNoreplyChange + organicNoreplyChange;
             const totalDropChange = fbDropChange + organicDropChange;
             const totalClosedCustomersChange = fbClosedCustomersChange + organicClosedCustomersChange;
             
             // Calculate current totals for simple summary
             const simpleEnquiryTotal = (currentBaseTotals.fb.enquiry + currentBaseTotals.organic.enquiry) + totalEnquiryChange;
-            const simpleFollowupTotal = (currentBaseTotals.fb.followup + currentBaseTotals.organic.followup) + totalFollowupChange;
             const simpleWaitingTotal = (currentBaseTotals.fb.waiting + currentBaseTotals.organic.waiting) + totalWaitingChange;
-            const simpleNoreplyTotal = (currentBaseTotals.fb.noreply + currentBaseTotals.organic.noreply) + totalNoreplyChange;
             const simpleDropTotal = (currentBaseTotals.fb.drop + currentBaseTotals.organic.drop) + totalDropChange;
             const simpleClosedTotal = (currentBaseTotals.fb.closedCustomers + currentBaseTotals.organic.closedCustomers) + totalClosedCustomersChange;
             
             document.getElementById('simpleEnquiry').textContent = formatChange(totalEnquiryChange);
             document.getElementById('simpleEnquiryTotal').textContent = simpleEnquiryTotal;
             
-            document.getElementById('simpleFollowup').textContent = formatChange(totalFollowupChange);
-            document.getElementById('simpleFollowupTotal').textContent = simpleFollowupTotal;
-            
             document.getElementById('simpleWaiting').textContent = formatChange(totalWaitingChange);
             document.getElementById('simpleWaitingTotal').textContent = simpleWaitingTotal;
-            
-            document.getElementById('simpleNoreply').textContent = formatChange(totalNoreplyChange);
-            document.getElementById('simpleNoreplyTotal').textContent = simpleNoreplyTotal;
             
             document.getElementById('simpleDrop').textContent = formatChange(totalDropChange);
             document.getElementById('simpleDropTotal').textContent = simpleDropTotal;
@@ -689,7 +612,7 @@
         }
         
         function formatChange(value) {
-            const num = parseInt(value || 0);
+            const num = parseFloat(value || 0); // Changed from parseInt to parseFloat
             if (num > 0) return "+" + num;
             if (num < 0) return num.toString();
             return "+0";
@@ -698,18 +621,14 @@
         function collectFormData() {
             return {
                 fbEnquiry: document.getElementById('fbEnquiry').value,
-                fbFollowup: document.getElementById('fbFollowup').value,
                 fbWaiting: document.getElementById('fbWaiting').value,
-                fbNoreply: document.getElementById('fbNoreply').value,
                 fbDrop: document.getElementById('fbDrop').value,
                 fbClosedCustomers: document.getElementById('fbClosedCustomers').value,
                 fbClosedB3F1: document.getElementById('fbClosedB3F1').value,
                 fbClosedSingle: document.getElementById('fbClosedSingle').value,
 
                 organicEnquiry: document.getElementById('organicEnquiry').value,
-                organicFollowup: document.getElementById('organicFollowup').value,
                 organicWaiting: document.getElementById('organicWaiting').value,
-                organicNoreply: document.getElementById('organicNoreply').value,
                 organicDrop: document.getElementById('organicDrop').value,
                 organicClosedCustomers: document.getElementById('organicClosedCustomers').value,
                 organicClosedB3F1: document.getElementById('organicClosedB3F1').value,
@@ -776,18 +695,14 @@
                 setTimeout(() => {
                     // Update local base totals for demo
                     currentBaseTotals.fb.enquiry += parseInt(formData.fbEnquiry || 0);
-                    currentBaseTotals.fb.followup += parseInt(formData.fbFollowup || 0);
                     currentBaseTotals.fb.waiting += parseInt(formData.fbWaiting || 0);
-                    currentBaseTotals.fb.noreply += parseInt(formData.fbNoreply || 0);
                     currentBaseTotals.fb.drop += parseInt(formData.fbDrop || 0);
                     currentBaseTotals.fb.closedCustomers += parseInt(formData.fbClosedCustomers || 0);
                     currentBaseTotals.fb.closedB3F1 += parseInt(formData.fbClosedB3F1 || 0);
                     currentBaseTotals.fb.closedSingle += parseInt(formData.fbClosedSingle || 0);
                     
                     currentBaseTotals.organic.enquiry += parseInt(formData.organicEnquiry || 0);
-                    currentBaseTotals.organic.followup += parseInt(formData.organicFollowup || 0);
                     currentBaseTotals.organic.waiting += parseInt(formData.organicWaiting || 0);
-                    currentBaseTotals.organic.noreply += parseInt(formData.organicNoreply || 0);
                     currentBaseTotals.organic.drop += parseInt(formData.organicDrop || 0);
                     currentBaseTotals.organic.closedCustomers += parseInt(formData.organicClosedCustomers || 0);
                     currentBaseTotals.organic.closedB3F1 += parseInt(formData.organicClosedB3F1 || 0);
