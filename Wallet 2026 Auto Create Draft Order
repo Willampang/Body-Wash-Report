@@ -178,7 +178,9 @@ function onNewRow(e) {
   var products = {
     "丰盛款": { variant_id: 46894587871444, price: "496.00", title: "丰盛款" },
     "富豪款": { variant_id: 46894589444308, price: "397.00", title: "富豪款" },
-    "吸金款": { variant_id: 46894591312084, price: "196.00", title: "吸金款" }
+    "吸金款": { variant_id: 46894591312084, price: "196.00", title: "吸金款" },
+    "2025钱种": { variant_id: 46894777925844, price: "0.00", title: "2025 钱种" },
+    "铜钱": { variant_id: 46894786609364, price: "0.00", title: "铜钱" }
   };
   
   if (qty丰盛款 > 0) {
@@ -205,6 +207,25 @@ function onNewRow(e) {
       "quantity": qty吸金款,
       "price": products["吸金款"].price,
       "title": products["吸金款"].title
+    });
+  }
+
+  // 🆕 NEW LOGIC: Auto-add "2025 钱种" and "铜钱" when 富豪款 > 2
+  if (qty富豪款 >= 2) {
+    // Add 2025 钱种
+    lineItems.push({
+      "variant_id": products["2025钱种"].variant_id,
+      "quantity": 1,
+      "price": products["2025钱种"].price,
+      "title": products["2025钱种"].title
+    });
+    
+    // Add 铜钱
+    lineItems.push({
+      "variant_id": products["铜钱"].variant_id,
+      "quantity": 1,
+      "price": products["铜钱"].price,
+      "title": products["铜钱"].title
     });
   }
 
@@ -242,56 +263,60 @@ function onNewRow(e) {
     noteText += "\nBirthdays: " + customerBirthdays.join(", ");
   }
 
-  var payload = {
-    "draft_order": {
-      "line_items": lineItems,
-      "billing_address": {
-        "first_name": name || "Customer",
-        "last_name": "",
-        "phone": phone || "",
-        "address1": streetAddress || "N/A",
-        "city": city || "Kuala Lumpur", 
-        "province": state || "",
-        "country": country || "Malaysia",
-        "zip": postalCode || ""
-      },
-      "shipping_address": {
-        "first_name": name || "Customer",
-        "last_name": "",
-        "phone": phone || "",
-        "address1": streetAddress || "N/A",
-        "city": city || "Kuala Lumpur",
-        "province": state || "",
-        "country": country || "Malaysia",
-        "zip": postalCode || ""
-      },
-      "note": noteText,
-    }
-  };
-
-  // Add customer data if available (Google Apps Script doesn't support spread operator)
-  if (Object.keys(customerData).length > 0) {
-    payload.draft_order.customer = customerData;
-  }
-
-  var url = "https://" + store + "/admin/api/2025-01/draft_orders.json";
-  var options = {
-    "method": "post",
-    "headers": {
-      "X-Shopify-Access-Token": token,
-      "Content-Type": "application/json"
+// Create draft order payload
+var payload = {
+  "draft_order": {
+    "line_items": lineItems,
+    "billing_address": {
+      "first_name": name || "Customer",
+      "last_name": "",
+      "phone": phone || "",
+      "address1": streetAddress || "N/A",
+      "city": city || "Kuala Lumpur", 
+      "province": state || "",
+      "country": country || "Malaysia",
+      "zip": postalCode || ""
     },
-    "payload": JSON.stringify(payload),
-    "muteHttpExceptions": true
-  };
-
-  var response = UrlFetchApp.fetch(url, options);
-  var data = JSON.parse(response.getContentText());
-
-  if (data.draft_order) {
-    sheet.getRange(row, 12).setValue(data.draft_order.id);
-  } else {
-    var errorMsg = "Error: " + (data.errors ? JSON.stringify(data.errors) : response.getContentText());
-    sheet.getRange(row, 12).setValue(errorMsg);
+    "shipping_address": {
+      "first_name": name || "Customer",
+      "last_name": "",
+      "phone": phone || "",
+      "address1": streetAddress || "N/A",
+      "city": city || "Kuala Lumpur",
+      "province": state || "",
+      "country": country || "Malaysia",
+      "zip": postalCode || ""
+    },
+    "note": noteText,
+    "tags": "On Hold,Google Sheet Import,GHL"
   }
+};
+
+// Add customer data if available
+if (Object.keys(customerData).length > 0) {
+  payload.draft_order.customer = customerData;
+}
+
+// Use draft_orders endpoint
+var url = "https://" + store + "/admin/api/2025-01/draft_orders.json";
+var options = {
+  "method": "post",
+  "headers": {
+    "X-Shopify-Access-Token": token,
+    "Content-Type": "application/json"
+  },
+  "payload": JSON.stringify(payload),
+  "muteHttpExceptions": true
+};
+
+var response = UrlFetchApp.fetch(url, options);
+var data = JSON.parse(response.getContentText());
+
+if (data.draft_order) {
+  sheet.getRange(row, 12).setValue("Draft Order Created: " + data.draft_order.id);
+} else {
+  var errorMsg = "Error: " + (data.errors ? JSON.stringify(data.errors) : response.getContentText());
+  sheet.getRange(row, 12).setValue(errorMsg);
+}
+
 }
