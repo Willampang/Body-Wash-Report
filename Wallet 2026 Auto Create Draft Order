@@ -153,8 +153,8 @@ function onNewRow(e) {
     }
   }
 
-  var store = "0xu0h7-qd.myshopify.com";   
-  var token = "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";
+  var store = "37esih-yx.myshopify.com";   
+  var token = "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";
 
   var customerId = null;
   var existingCustomer = null;
@@ -176,9 +176,9 @@ function onNewRow(e) {
   var lineItems = [];
   
   var products = {
-    "丰盛款": { variant_id: 42412424659078, price: "496.00", title: "丰盛款" },
-    "富豪款": { variant_id: 42412425150598, price: "397.00", title: "富豪款" },
-    "吸金款": { variant_id: 42412426166406, price: "196.00", title: "吸金款" }
+    "丰盛款": { variant_id: 46894587871444, price: "496.00", title: "丰盛款" },
+    "富豪款": { variant_id: 46894589444308, price: "397.00", title: "富豪款" },
+    "吸金款": { variant_id: 46894591312084, price: "196.00", title: "吸金款" }
   };
   
   if (qty丰盛款 > 0) {
