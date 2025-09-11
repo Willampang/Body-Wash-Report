@@ -237,12 +237,17 @@
                         
                         <div class="form-group">
                             <label for="fbDrop">Drop:</label>
-                            <input type="number" id="fbDrop" name="fbDrop"  value="0" required>
+                            <input type="number" id="fbDrop" name="fbDrop" value="0" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="fbCod">COD:</label>
+                            <input type="number" id="fbCod" name="fbCod" value="0" required>
                         </div>
                         
                         <div class="form-group">
                             <label for="fbClosedCustomers">Closed (Customers):</label>
-                            <input type="number" id="fbClosedCustomers" name="fbClosedCustomers"  value="0" required>
+                            <input type="number" id="fbClosedCustomers" name="fbClosedCustomers" value="0" required>
                         </div>
                         
                         <div class="form-row">
@@ -253,7 +258,7 @@
                             
                             <div class="form-group">
                                 <label for="fbClosedSingle">Single Bottles:</label>
-                                <input type="number" id="fbClosedSingle" name="fbClosedSingle"  value="0" required>
+                                <input type="number" id="fbClosedSingle" name="fbClosedSingle" value="0" required>
                             </div>
                         </div>
                     </div>
@@ -262,17 +267,22 @@
                         <h3>Organic</h3>
                         <div class="form-group">
                             <label for="organicEnquiry">Enquiry:</label>
-                            <input type="number" id="organicEnquiry" name="organicEnquiry"  value="0" required>
+                            <input type="number" id="organicEnquiry" name="organicEnquiry" value="0" required>
                         </div>
                         
                         <div class="form-group">
                             <label for="organicWaiting">Waiting Payment:</label>
-                            <input type="number" id="organicWaiting" name="organicWaiting"  value="0" required>
+                            <input type="number" id="organicWaiting" name="organicWaiting" value="0" required>
                         </div>
                         
                         <div class="form-group">
                             <label for="organicDrop">Drop:</label>
-                            <input type="number" id="organicDrop" name="organicDrop"  value="0" required>
+                            <input type="number" id="organicDrop" name="organicDrop" value="0" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="organicCod">COD:</label>
+                            <input type="number" id="organicCod" name="organicCod" value="0" required>
                         </div>
                         
                         <div class="form-group">
@@ -283,12 +293,12 @@
                         <div class="form-row">
                             <div class="form-group">
                                 <label for="organicClosedB3F1">B3F1 Sets Sold:</label>
-                                <input type="number" id="organicClosedB3F1" name="organicClosedB3F1"  value="0" required>
+                                <input type="number" id="organicClosedB3F1" name="organicClosedB3F1" value="0" required>
                             </div>
                             
                             <div class="form-group">
                                 <label for="organicClosedSingle">Single Bottles:</label>
-                                <input type="number" id="organicClosedSingle" name="organicClosedSingle"  value="0" required>
+                                <input type="number" id="organicClosedSingle" name="organicClosedSingle" value="0" required>
                             </div>
                         </div>
                     </div>
@@ -343,6 +353,14 @@
                         <td class="organic-row">Drop:</td>
                         <td class="organic-row" id="organicDropChange">+0</td>
                         <td class="organic-row" id="organicDropTotal">0</td>
+                    </tr>
+                    <tr>
+                        <td class="fb-ad-row">COD:</td>
+                        <td class="fb-ad-row" id="fbCodChange">+0</td>
+                        <td class="fb-ad-row" id="fbCodTotal">1</td>
+                        <td class="organic-row">COD:</td>
+                        <td class="organic-row" id="organicCodChange">+0</td>
+                        <td class="organic-row" id="organicCodTotal">0</td>
                     </tr>
                     <tr>
                         <td class="fb-ad-row">Closed</td>
@@ -412,6 +430,10 @@
                             <td id="simpleDropTotal">7</td>
                         </tr>
                         <tr>
+                            <td>COD (<span id="simpleCod">+0</span>)</td>
+                            <td id="simpleCodTotal">1</td>
+                        </tr>
+                        <tr>
                             <td>Closed (<span id="simpleClosed">+0</span>)</td>
                             <td id="simpleClosedTotal">39</td>
                         </tr>
@@ -423,8 +445,8 @@
 
     <script>
         let currentBaseTotals = {
-            fb: { enquiry: 1254, waiting: 8, drop: 7, closedCustomers: 34, closedB3F1: 29, closedSingle: 6 },
-            organic: { enquiry: 5, waiting: 0, drop: 0, closedCustomers: 5, closedB3F1: 5, closedSingle: 0 }
+            fb: { enquiry: 1254, waiting: 8, drop: 7, cod: 1, closedCustomers: 34, closedB3F1: 29, closedSingle: 6 },
+            organic: { enquiry: 5, waiting: 0, drop: 0, cod: 0, closedCustomers: 5, closedB3F1: 5, closedSingle: 0 }
         };
 
         document.addEventListener('DOMContentLoaded', function() {
@@ -491,6 +513,7 @@
             const fbEnquiryChange = parseFloat(data.fbEnquiry || 0);
             const fbWaitingChange = parseFloat(data.fbWaiting || 0);
             const fbDropChange = parseFloat(data.fbDrop || 0);
+            const fbCodChange = parseFloat(data.fbCod || 0);
             const fbClosedCustomersChange = parseFloat(data.fbClosedCustomers || 0);
             const fbClosedB3F1Change = parseFloat(data.fbClosedB3F1 || 0);
             const fbClosedSingleChange = parseFloat(data.fbClosedSingle || 0);
@@ -498,9 +521,10 @@
             const organicEnquiryChange = parseFloat(data.organicEnquiry || 0);
             const organicWaitingChange = parseFloat(data.organicWaiting || 0);
             const organicDropChange = parseFloat(data.organicDrop || 0);
+            const organicCodChange = parseFloat(data.organicCod || 0);
             const organicClosedCustomersChange = parseFloat(data.organicClosedCustomers || 0);
             const organicClosedB3F1Change = parseFloat(data.organicClosedB3F1 || 0);
-            const organicClosedSingleChange = parseFloat(data.organicSingleChange || 0);
+            const organicClosedSingleChange = parseFloat(data.organicClosedSingle || 0);
             
             // Update FB Ad section (GREEN TABLE)
             document.getElementById('fbEnquiryChange').textContent = formatChange(fbEnquiryChange);
@@ -511,6 +535,9 @@
             
             document.getElementById('fbDropChange').textContent = formatChange(fbDropChange);
             document.getElementById('fbDropTotal').textContent = Math.max(0,currentBaseTotals.fb.drop + fbDropChange);
+            
+            document.getElementById('fbCodChange').textContent = formatChange(fbCodChange);
+            document.getElementById('fbCodTotal').textContent = Math.max(0,currentBaseTotals.fb.cod + fbCodChange);
             
             // Green table shows CUSTOMERS who bought (not products sold)
             document.getElementById('fbClosedCustomersChange').textContent = formatChange(fbClosedCustomersChange);
@@ -525,6 +552,9 @@
             
             document.getElementById('organicDropChange').textContent = formatChange(organicDropChange);
             document.getElementById('organicDropTotal').textContent = Math.max(0,currentBaseTotals.organic.drop + organicDropChange);
+            
+            document.getElementById('organicCodChange').textContent = formatChange(organicCodChange);
+            document.getElementById('organicCodTotal').textContent = Math.max(0,currentBaseTotals.organic.cod + organicCodChange);
             
             // Green table shows CUSTOMERS who bought (not products sold)
             document.getElementById('organicClosedCustomersChange').textContent = formatChange(organicClosedCustomersChange);
@@ -588,12 +618,14 @@
             const totalEnquiryChange = fbEnquiryChange + organicEnquiryChange;
             const totalWaitingChange = fbWaitingChange + organicWaitingChange;
             const totalDropChange = fbDropChange + organicDropChange;
+            const totalCodChange = fbCodChange + organicCodChange;
             const totalClosedCustomersChange = fbClosedCustomersChange + organicClosedCustomersChange;
             
             // Calculate current totals for simple summary
             const simpleEnquiryTotal = (currentBaseTotals.fb.enquiry + currentBaseTotals.organic.enquiry) + totalEnquiryChange;
             const simpleWaitingTotal = (currentBaseTotals.fb.waiting + currentBaseTotals.organic.waiting) + totalWaitingChange;
             const simpleDropTotal = (currentBaseTotals.fb.drop + currentBaseTotals.organic.drop) + totalDropChange;
+            const simpleCodTotal = (currentBaseTotals.fb.cod + currentBaseTotals.organic.cod) + totalCodChange;
             const simpleClosedTotal = (currentBaseTotals.fb.closedCustomers + currentBaseTotals.organic.closedCustomers) + totalClosedCustomersChange;
             
             document.getElementById('simpleEnquiry').textContent = formatChange(totalEnquiryChange);
@@ -604,6 +636,9 @@
             
             document.getElementById('simpleDrop').textContent = formatChange(totalDropChange);
             document.getElementById('simpleDropTotal').textContent = simpleDropTotal;
+            
+            document.getElementById('simpleCod').textContent = formatChange(totalCodChange);
+            document.getElementById('simpleCodTotal').textContent = simpleCodTotal;
             
             document.getElementById('simpleClosed').textContent = formatChange(totalClosedCustomersChange);
             document.getElementById('simpleClosedTotal').textContent = simpleClosedTotal;
@@ -623,6 +658,7 @@
                 fbEnquiry: document.getElementById('fbEnquiry').value,
                 fbWaiting: document.getElementById('fbWaiting').value,
                 fbDrop: document.getElementById('fbDrop').value,
+                fbCod: document.getElementById('fbCod').value,
                 fbClosedCustomers: document.getElementById('fbClosedCustomers').value,
                 fbClosedB3F1: document.getElementById('fbClosedB3F1').value,
                 fbClosedSingle: document.getElementById('fbClosedSingle').value,
@@ -630,6 +666,7 @@
                 organicEnquiry: document.getElementById('organicEnquiry').value,
                 organicWaiting: document.getElementById('organicWaiting').value,
                 organicDrop: document.getElementById('organicDrop').value,
+                organicCod: document.getElementById('organicCod').value,
                 organicClosedCustomers: document.getElementById('organicClosedCustomers').value,
                 organicClosedB3F1: document.getElementById('organicClosedB3F1').value,
                 organicClosedSingle: document.getElementById('organicClosedSingle').value,
@@ -697,6 +734,7 @@
                     currentBaseTotals.fb.enquiry += parseInt(formData.fbEnquiry || 0);
                     currentBaseTotals.fb.waiting += parseInt(formData.fbWaiting || 0);
                     currentBaseTotals.fb.drop += parseInt(formData.fbDrop || 0);
+                    currentBaseTotals.fb.cod += parseInt(formData.fbCod || 0);
                     currentBaseTotals.fb.closedCustomers += parseInt(formData.fbClosedCustomers || 0);
                     currentBaseTotals.fb.closedB3F1 += parseInt(formData.fbClosedB3F1 || 0);
                     currentBaseTotals.fb.closedSingle += parseInt(formData.fbClosedSingle || 0);
@@ -704,6 +742,7 @@
                     currentBaseTotals.organic.enquiry += parseInt(formData.organicEnquiry || 0);
                     currentBaseTotals.organic.waiting += parseInt(formData.organicWaiting || 0);
                     currentBaseTotals.organic.drop += parseInt(formData.organicDrop || 0);
+                    currentBaseTotals.organic.cod += parseInt(formData.organicCod || 0);
                     currentBaseTotals.organic.closedCustomers += parseInt(formData.organicClosedCustomers || 0);
                     currentBaseTotals.organic.closedB3F1 += parseInt(formData.organicClosedB3F1 || 0);
                     currentBaseTotals.organic.closedSingle += parseInt(formData.organicClosedSingle || 0);
