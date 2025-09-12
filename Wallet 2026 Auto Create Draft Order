@@ -1,4 +1,4 @@
-// Helper function to format birthday and remove time
+//Auto Create Draft Orders
 function formatBirthday(birthday) {
   if (!birthday) return "";
   
