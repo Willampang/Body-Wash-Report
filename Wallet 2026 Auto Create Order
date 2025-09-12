@@ -1,4 +1,4 @@
-// Helper function to format birthday and remove time
+//Auto Create Orders
 function formatBirthday(birthday) {
   if (!birthday) return "";
   
@@ -186,46 +186,39 @@ function onNewRow(e) {
   if (qty丰盛款 > 0) {
     lineItems.push({
       "variant_id": products["丰盛款"].variant_id,
-      "quantity": qty丰盛款,
-      "price": products["丰盛款"].price,
-      "title": products["丰盛款"].title
+      "quantity": qty丰盛款
+      // Removed price and title - these are auto-populated by Shopify for orders
     });
   }
   
   if (qty富豪款 > 0) {
     lineItems.push({
       "variant_id": products["富豪款"].variant_id,
-      "quantity": qty富豪款,
-      "price": products["富豪款"].price,
-      "title": products["富豪款"].title
+      "quantity": qty富豪款
+      // Removed price and title - these are auto-populated by Shopify for orders
     });
   }
   
   if (qty吸金款 > 0) {
     lineItems.push({
       "variant_id": products["吸金款"].variant_id,
-      "quantity": qty吸金款,
-      "price": products["吸金款"].price,
-      "title": products["吸金款"].title
+      "quantity": qty吸金款
+      // Removed price and title - these are auto-populated by Shopify for orders
     });
   }
 
-  // 🆕 NEW LOGIC: Auto-add "2025 钱种" and "铜钱" when 富豪款 > 2
+  // 🆕 NEW LOGIC: Auto-add "2025 钱种" and "铜钱" when 富豪款 >= 2
   if (qty富豪款 >= 2) {
     // Add 2025 钱种
     lineItems.push({
       "variant_id": products["2025钱种"].variant_id,
-      "quantity": 1,
-      "price": products["2025钱种"].price,
-      "title": products["2025钱种"].title
+      "quantity": 1
     });
     
-    // Add 铜钱
+    // Add 铜钱 (Fixed reference)
     lineItems.push({
-      "variant_id": products["铜钱"].variant_id,
-      "quantity": 1,
-      "price": products["铜钱"].price,
-      "title": products["铜钱"].title
+      "variant_id": products["天圆地方铜钱"].variant_id,
+      "quantity": 1
     });
   }
 
@@ -262,7 +255,8 @@ function onNewRow(e) {
   if (!skipBirthdayCheck && customerBirthdays.length > 0) {
     noteText += "\nBirthdays: " + customerBirthdays.join(", ");
   }
-  // Create direct order payload instead of draft order
+
+  // Create order payload (NOT draft order)
   var payload = {
     "order": {
       "line_items": lineItems,
@@ -290,7 +284,8 @@ function onNewRow(e) {
       "tags": "On Hold,Google Sheet Import,GHL",
       "financial_status": "pending",
       "send_receipt": false,
-      "send_fulfillment_receipt": false
+      "send_fulfillment_receipt": false,
+      "inventory_behaviour": "decrement_obeying_policy" // Important for orders
     }
   };
 
@@ -299,7 +294,7 @@ function onNewRow(e) {
     payload.order.customer = customerData;
   }
 
-  // Use orders endpoint instead of draft_orders
+  // Use orders endpoint
   var url = "https://" + store + "/admin/api/2025-01/orders.json";
   var options = {
     "method": "post",
@@ -312,12 +307,22 @@ function onNewRow(e) {
   };
 
   var response = UrlFetchApp.fetch(url, options);
+  var responseCode = response.getResponseCode();
   var data = JSON.parse(response.getContentText());
 
-  if (data.order) {
-    sheet.getRange(row, 12).setValue("Order: " + data.order.id);
+  // Better error handling
+  if (responseCode >= 200 && responseCode < 300 && data.order) {
+    sheet.getRange(row, 12).setValue("Order Created: " + data.order.id);
   } else {
-    var errorMsg = "Error: " + (data.errors ? JSON.stringify(data.errors) : response.getContentText());
+    var errorMsg = "Error (" + responseCode + "): ";
+    if (data.errors) {
+      errorMsg += JSON.stringify(data.errors);
+    } else {
+      errorMsg += response.getContentText();
+    }
     sheet.getRange(row, 12).setValue(errorMsg);
+    
+    // Log full response for debugging
+    console.log("Full API Response:", response.getContentText());
   }
 }
