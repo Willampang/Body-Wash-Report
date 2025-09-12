@@ -180,7 +180,7 @@ function onNewRow(e) {
     "富豪款": { variant_id: 46894589444308, price: "397.00", title: "富豪款" },
     "吸金款": { variant_id: 46894591312084, price: "196.00", title: "吸金款" },
     "2025钱种": { variant_id: 46894777925844, price: "0.00", title: "2025 钱种" },
-    "铜钱": { variant_id: 46894786609364, price: "0.00", title: "铜钱" }
+    "天圆地方铜钱": { variant_id: 46894786609364, price: "0.00", title: "天圆地方铜钱" }
   };
   
   if (qty丰盛款 > 0) {
