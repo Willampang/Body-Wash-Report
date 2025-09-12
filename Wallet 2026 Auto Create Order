@@ -262,12 +262,6 @@ function onNewRow(e) {
   if (!skipBirthdayCheck && customerBirthdays.length > 0) {
     noteText += "\nBirthdays: " + customerBirthdays.join(", ");
   }
-
-  // Add note about auto-added products when 富豪款 > 2
-  if (qty富豪款 >= 2) {
-    noteText += "\nAuto-added: 2025 钱种 and 铜钱 (富豪款 > 2)";
-  }
-
   // Create direct order payload instead of draft order
   var payload = {
     "order": {
