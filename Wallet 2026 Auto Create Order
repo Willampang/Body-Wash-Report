@@ -1,4 +1,116 @@
-//Auto Create Order
+//Auto Create Orders
+class QiMenDunJiaCalculator {
+  constructor() {
+    this.tianGan = ['甲','乙','丙','丁','戊','己','庚','辛','壬','癸'];
+    this.diZhi = ['子','丑','寅','卯','辰','巳','午','未','申','酉','戌','亥'];
+    this.baMen = ['休门','死门','伤门','杜门','中宫','开门','惊门','生门','景门'];
+    this.jiuXing = ['天蓬','天芮','天冲','天辅','天禽','天心','天柱','天任','天英'];
+    this.jiuShen = ['直符','螣蛇','太阴','六合','白虎','玄武','九地','九天','太常'];
+    this.jiuGong = ['乾六宫','坎一宫','艮八宫','震三宫','中五宫','兑七宫','巽四宫','离九宫','坤二宫'];
+
+    this.jieQiJuShu = {
+      '冬至':1,'小寒':1,'大寒':1,'立春':2,'雨水':2,'惊蛰':2,'春分':3,'清明':3,'谷雨':3,
+      '立夏':4,'小满':4,'芒种':4,'夏至':5,'小暑':5,'大暑':5,'立秋':6,'处暑':6,'白露':6,
+      '秋分':7,'寒露':7,'霜降':7,'立冬':8,'小雪':8,'大雪':8
+    };
+
+    this.goldCardMap = {
+      "兑": "兑宫","艮": "艮宫","坎": "坎宫","坤": "坤宫",
+      "离": "离宫","乾": "乾宫","巽": "巽宫","震": "震宫"
+    };
+  }
+
+  calculateQiMen(year, month, day, hour, minute = 0) {
+    const basicInfo = this.getBasicInfo(year, month, day, hour, minute);
+    const juShu = this.getJuShu(basicInfo.jieQi, basicInfo.isYangDun);
+    const zhiFuZhiShi = this.getZhiFuZhiShi(basicInfo.jiaZi, juShu);
+    const jiuGongJu = this.arrangeJiuGong(juShu, zhiFuZhiShi);
+
+    return {
+      basicInfo,
+      juShu,
+      zhiFuZhiShi,
+      jiuGongJu,
+      interpretation: this.getInterpretation(jiuGongJu, basicInfo),
+      goldCard: this.getGoldCard(jiuGongJu)
+    };
+  }
+
+  getBasicInfo(year, month, day, hour, minute) {
+    const date = new Date(year, month - 1, day, hour, minute);
+    const jieQi = this.getJieQi(month, day);
+    const isYangDun = this.isYangDun(jieQi);
+    const jiaZi = (year + month + day + hour + minute) % 60;
+    return { date, jieQi, isYangDun, jiaZi, dunJia: isYangDun ? '阳遁' : '阴遁' };
+  }
+
+  getJieQi(month, day) {
+    const jieQiMap = {
+      1: '小寒',2: '雨水',3: '春分',4: '谷雨',
+      5: '立夏',6: '夏至',7: '大暑',8: '处暑',
+      9: '秋分',10: '霜降',11: '小雪',12: '冬至'
+    };
+    return jieQiMap[month] || '未知';
+  }
+
+  isYangDun(jieQi) {
+    const yangDunJieQi = ['冬至','小寒','大寒','立春','雨水','惊蛰','春分','清明','谷雨'];
+    return yangDunJieQi.includes(jieQi);
+  }
+
+  getJuShu(jieQi, isYangDun) {
+    let ju = this.jieQiJuShu[jieQi] || 1;
+    return isYangDun ? ju : 9 - (ju - 1);
+  }
+
+  getZhiFuZhiShi(jiaZi, juShu) {
+    const zhiFuIndex = jiaZi % this.jiuShen.length;
+    const zhiShiIndex = (jiaZi + juShu) % this.baMen.length;
+    return { zhiFu: this.jiuShen[zhiFuIndex], zhiShi: this.baMen[zhiShiIndex] };
+  }
+
+  arrangeJiuGong(juShu, zhiFuZhiShi) {
+    return this.jiuGong.map((gong, i) => {
+      const gongName = gong.replace(/[0-9宫六八三五七四九二]/g, "");
+      return {
+        gongWei: gong,
+        men: this.baMen[(i + juShu) % this.baMen.length],
+        xing: this.jiuXing[(i + juShu) % this.jiuXing.length],
+        shen: this.jiuShen[(i + juShu) % this.jiuShen.length],
+        goldCard: this.goldCardMap[gongName] || ""
+      };
+    });
+  }
+
+  getGoldCard(jiuGongJu) {
+    const zhiFuGong = jiuGongJu.find(g => g.shen === "直符");
+    return zhiFuGong ? zhiFuGong.goldCard : "";
+  }
+
+  getInterpretation(jiuGongJu, basicInfo) {
+    const zhiFuGong = jiuGongJu.find(g => g.shen === "直符");
+    let advice = "宜顺势而为，择吉方行动";
+
+    if (zhiFuGong) {
+      switch (zhiFuGong.goldCard) {
+        case "乾宫": advice = "宜开拓进取，适合创业或掌权"; break;
+        case "坎宫": advice = "宜静守学习，适合研究与规划"; break;
+        case "艮宫": advice = "宜积累沉淀，适合投资与储蓄"; break;
+        case "震宫": advice = "宜行动突破，适合营销与谈判"; break;
+        case "巽宫": advice = "宜交流合作，适合谈判与社交"; break;
+        case "离宫": advice = "宜宣传推广，适合文艺与传播"; break;
+        case "坤宫": advice = "宜谦逊包容，适合养生与人和"; break;
+        case "兑宫": advice = "宜享乐交际，适合娱乐与聚会"; break;
+      }
+    }
+
+    return {
+      overall: `${basicInfo.dunJia}${basicInfo.jieQi}局，整体能量平衡`,
+      advice
+    };
+  }
+}
+
 function formatBirthday(birthday) {
   if (!birthday) return "";
   
@@ -11,14 +123,83 @@ function formatBirthday(birthday) {
     }
     
     if (isNaN(date.getTime())) {
-      return String(birthday); // Return original if not a valid date
+      return String(birthday);
     }
     
-    // Format as readable date without time
     var options = { year: 'numeric', month: 'long', day: 'numeric' };
     return date.toLocaleDateString('en-US', options);
   } catch (e) {
-    return String(birthday); // Return original if formatting fails
+    return String(birthday);
+  }
+}
+
+function calculateQimenForBirthday(birthday, birthdayIndex) {
+  if (!birthday) {
+    console.log("No birthday provided");
+    return null;
+  }
+  
+  try {
+    var date;
+    
+    // Handle different birthday formats
+    if (birthday instanceof Date) {
+      date = birthday;
+    } else if (typeof birthday === 'string') {
+      // Clean up ordinal numbers (1st, 2nd, 3rd, 4th, etc.) from string
+      var cleanBirthday = birthday.replace(/(\d+)(st|nd|rd|th)/g, '$1');
+      console.log("Cleaned birthday string:", cleanBirthday);
+      date = new Date(cleanBirthday);
+    } else {
+      // Try to convert to date
+      date = new Date(birthday);
+    }
+    
+    console.log("Parsed date:", date);
+    
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+      console.log("Invalid birthday format:", birthday);
+      // Try alternative parsing for formats like "Sep 5th 2025"
+      if (typeof birthday === 'string') {
+        var parts = birthday.replace(/(\d+)(st|nd|rd|th)/g, '$1').split(' ');
+        if (parts.length >= 3) {
+          var monthStr = parts[0];
+          var dayStr = parts[1];
+          var yearStr = parts[2];
+          date = new Date(monthStr + ' ' + dayStr + ', ' + yearStr);
+          console.log("Alternative parsing result:", date);
+        }
+      }
+      
+      if (isNaN(date.getTime())) {
+        return null;
+      }
+    }
+    
+    const calculator = new QiMenDunJiaCalculator();
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1;
+    const day = date.getDate();
+    
+    console.log("Date components - Year:", year, "Month:", month, "Day:", day);
+    
+    // FIXED: Create much more variation between different birthdays
+    // Use birthdayIndex to ensure birthday1 and birthday2 get different cards
+    const baseHour = 8 + (birthdayIndex * 6); // birthday1=8, birthday2=14
+    const hour = (baseHour + (day % 8)) % 24;
+    const minute = ((day * 11) + (month * 7) + (birthdayIndex * 23)) % 60;
+    
+    console.log("Calculation inputs - Hour:", hour, "Minute:", minute);
+    
+    const result = calculator.calculateQiMen(year, month, day, hour, minute);
+    console.log("Qimen calculation result:", result);
+    console.log("Golden card:", result.goldCard);
+    
+    return result.goldCard;
+  } catch (e) {
+    console.log("Qimen calculation error:", e.message, e.stack);
+    return null;
   }
 }
 
@@ -48,6 +229,7 @@ function onNewRow(e) {
   var country = "";
   var postalCode = "";
   var phone = "";
+  var customerBirthday = null;
   var qty丰盛款 = 0;
   var qty富豪款 = 0;
   var qty吸金款 = 0;
@@ -61,11 +243,12 @@ function onNewRow(e) {
     country = sheet.getRange(row, 6).getValue();        // Col F: Country
     postalCode = sheet.getRange(row, 7).getValue();     // Col G: Postal Code
     phone = sheet.getRange(row, 8).getValue();          // Col H: Phone
-    qty丰盛款 = sheet.getRange(row, 9).getValue();       // Col I: 丰盛款
-    qty富豪款 = sheet.getRange(row, 10).getValue();      // Col J: 富豪款
-    qty吸金款 = sheet.getRange(row, 11).getValue();      // Col K: 吸金款
+    customerBirthday = sheet.getRange(row, 9).getValue(); // Col I: Customer Birthday
+    qty丰盛款 = sheet.getRange(row, 10).getValue();      // Col J: 丰盛款
+    qty富豪款 = sheet.getRange(row, 11).getValue();      // Col K: 富豪款
+    qty吸金款 = sheet.getRange(row, 12).getValue();      // Col L: 吸金款
   } catch (error) {
-    sheet.getRange(row, 12).setValue("Read Error: " + error.message);
+    sheet.getRange(row, 13).setValue("Read Error: " + error.message);
     return;
   }
   
@@ -83,74 +266,18 @@ function onNewRow(e) {
   qty吸金款 = Number(qty吸金款) || 0;
   
   if (!name) {
-    sheet.getRange(row, 12).setValue("Error: No name");
+    sheet.getRange(row, 13).setValue("Error: No name");
     return;
   }
 
   if (!email) {
-    sheet.getRange(row, 12).setValue("Error: No email provided");
+    sheet.getRange(row, 13).setValue("Error: No email provided");
     return;
   }
 
   if (qty丰盛款 <= 0 && qty富豪款 <= 0 && qty吸金款 <= 0) {
-    sheet.getRange(row, 12).setValue("No products ordered");
+    sheet.getRange(row, 13).setValue("No products ordered");
     return;
-  }
-
-  // 🔍 NEW LOGIC: Skip birthday check if 富豪款 qty is exactly 1
-  var skipBirthdayCheck = (qty富豪款 === 1);
-  var customerEmails = [];
-  var customerBirthdays = [];
-  var emailFoundInBirthdaySheet = true; // Default to true when skipping check
-  
-  if (!skipBirthdayCheck) {
-    // Original birthday sheet check logic
-    emailFoundInBirthdaySheet = false;
-    
-    var birthdaySheet = spreadsheet.getSheetByName("顾客生日");
-    if (!birthdaySheet) {
-      sheet.getRange(row, 12).setValue("Error: 顾客生日 sheet not found");
-      return;
-    }
-    
-    var bLastRow = birthdaySheet.getLastRow();
-    if (bLastRow > 1) {
-      var bData = birthdaySheet.getRange(2, 1, bLastRow - 1, 4).getValues(); 
-      // Col1 = Email1, Col2 = Birthday1, Col3 = Email2, Col4 = Birthday2
-      for (var i = 0; i < bData.length; i++) {
-        var bEmail1 = bData[i][0] ? String(bData[i][0]).trim() : "";
-        var bBirthday1 = bData[i][1];
-        var bEmail2 = bData[i][2] ? String(bData[i][2]).trim() : "";
-        var bBirthday2 = bData[i][3];
-        
-        // Check if the input email matches either email1 or email2
-        if ((bEmail1 && bEmail1.toLowerCase() === email.toLowerCase()) || 
-            (bEmail2 && bEmail2.toLowerCase() === email.toLowerCase())) {
-          emailFoundInBirthdaySheet = true;
-          
-          // Collect all emails for this customer
-          if (bEmail1) customerEmails.push(bEmail1);
-          if (bEmail2) customerEmails.push(bEmail2);
-          
-          // Collect all birthdays and format them (remove time)
-          if (bBirthday1) {
-            var formattedBirthday1 = formatBirthday(bBirthday1);
-            if (formattedBirthday1) customerBirthdays.push(formattedBirthday1);
-          }
-          if (bBirthday2) {
-            var formattedBirthday2 = formatBirthday(bBirthday2);
-            if (formattedBirthday2) customerBirthdays.push(formattedBirthday2);
-          }
-          break;
-        }
-      }
-    }
-    
-    // ❌ STOP PROCESSING if email not found in 顾客生日 sheet (only when not skipping check)
-    if (!emailFoundInBirthdaySheet) {
-      sheet.getRange(row, 12).setValue("Email not found in 顾客生日 sheet - Order not created");
-      return;
-    }
   }
 
   var store = "fep4d0-5w.myshopify.com";   
@@ -173,22 +300,29 @@ function onNewRow(e) {
     }
   }
 
-  var lineItems = [];
+  var lineItems = []; 
   
-  //need to change to actual 钱包,钱种,铜钱 actual price and Variant ID 
   var products = {
     "丰盛款": { variant_id: 51863659675951, price: "496.00", title: "丰盛款" },
     "富豪款": { variant_id: 51863659774255, price: "397.00", title: "富豪款" },
     "吸金款": { variant_id: 51863659807023, price: "196.00", title: "吸金款" },
+    "带财款": { variant_id: 51864000102703, price: "296.00", title: "带财款" },
     "2025钱种": { variant_id: 51863659872559, price: "0.00", title: "2025 钱种" },
-    "天圆地方铜钱": { variant_id: 51863660167471, price: "0.00", title: "天圆地方铜钱" }
+    "天圆地方铜钱": { variant_id: 51863660167471, price: "0.00", title: "天圆地方铜钱" },
+    "乾宫": { variant_id: 51863660396847, price: "0.00", title: "乾宫" },
+    "坎宫": { variant_id: 51863660560687, price: "0.00", title: "坎宫" },
+    "艮宫": { variant_id: 51863660626223, price: "0.00", title: "艮宫" },
+    "震宫": { variant_id: 51863660921135, price: "0.00", title: "震宫" },
+    "巽宫": { variant_id: 51863660953903, price: "0.00", title: "巽宫" },
+    "离宫": { variant_id: 51863661543727, price: "0.00", title: "离宫" },
+    "坤宫": { variant_id: 51863661642031, price: "0.00", title: "坤宫" },
+    "兑宫": { variant_id: 51863662068015, price: "0.00", title: "兑宫" }
   };
   
   if (qty丰盛款 > 0) {
     lineItems.push({
       "variant_id": products["丰盛款"].variant_id,
       "quantity": qty丰盛款
-      // Removed price and title - these are auto-populated by Shopify for orders
     });
   }
   
@@ -196,7 +330,6 @@ function onNewRow(e) {
     lineItems.push({
       "variant_id": products["富豪款"].variant_id,
       "quantity": qty富豪款
-      // Removed price and title - these are auto-populated by Shopify for orders
     });
   }
   
@@ -204,22 +337,60 @@ function onNewRow(e) {
     lineItems.push({
       "variant_id": products["吸金款"].variant_id,
       "quantity": qty吸金款
-      // Removed price and title - these are auto-populated by Shopify for orders
     });
   }
 
-  if (qty富豪款 >= 2) {
-    // Add 2025 钱种
-    lineItems.push({
-      "variant_id": products["2025钱种"].variant_id,
-      "quantity": 1
-    });
-    
-    // Add 铜钱 (Fixed reference)
+  // Calculate total order value
+  var totalOrderValue = (qty丰盛款 * 496) + (qty富豪款 * 397) + (qty吸金款 * 196);
+  
+  // Add bonus items based on order value
+  if (totalOrderValue >= 800) {
+    // Add 2 copper coins for orders 800 and above
     lineItems.push({
       "variant_id": products["天圆地方铜钱"].variant_id,
-      "quantity": 1
+      "quantity": 2
     });
+  }
+  
+  if (totalOrderValue >= 1500) {
+    // Add 吸金款 for first 100 customers (you may need to track this separately)
+    lineItems.push({
+      "variant_id": products["吸金款"].variant_id,
+      "quantity": 1,
+      "price":0.00
+    });
+  }
+  
+  if (totalOrderValue >= 2000) {
+    // Add 带财款 for first 100 customers (you'll need to add this product to your products list)
+    // For now, I'll add 丰盛款 as placeholder - you can update the variant_id
+    lineItems.push({
+      "variant_id": products["带财款"].variant_id, // Update this to 带财款 variant_id
+      "quantity": 1,
+      "price":0.00
+    });
+  }
+
+  // Calculate and add golden card if customer has any product and valid birthday
+  var goldenCard = null;
+  var totalProducts = qty丰盛款 + qty富豪款 + qty吸金款;
+  
+  if (totalProducts > 0 && customerBirthday) {
+    console.log("Processing birthday:", customerBirthday);
+    goldenCard = calculateQimenForBirthday(customerBirthday, 0);
+    console.log("Calculated golden card:", goldenCard);
+    
+    if (goldenCard && products[goldenCard]) {
+      lineItems.push({
+        "variant_id": products[goldenCard].variant_id,
+        "quantity": 1
+      });
+      console.log("Added golden card to order:", goldenCard);
+    } else {
+      console.log("Golden card not found in products or calculation failed");
+    }
+  } else {
+    console.log("No products ordered or no birthday provided");
   }
 
   var customerData = {};
@@ -231,32 +402,30 @@ function onNewRow(e) {
 
   var noteText = "Customer: " + (name || "Name not provided");
   
-  // Remove duplicate emails and filter out the main email from customer emails list
-  var uniqueCustomerEmails = [];
-  for (var j = 0; j < customerEmails.length; j++) {
-    var customerEmail = customerEmails[j];
-    if (customerEmail.toLowerCase() !== email.toLowerCase() && 
-        uniqueCustomerEmails.indexOf(customerEmail) === -1) {
-      uniqueCustomerEmails.push(customerEmail);
-    }
-  }
-  
   // Add main email on new line
   if (email) {
     noteText += "\nEmail: " + email;
   }
   
-  // Add additional customer emails on new line (if any, excluding main email)
-  if (uniqueCustomerEmails.length > 0) {
-    noteText += "\nAdditional Emails: " + uniqueCustomerEmails.join(", ");
+  // Add order value information
+  noteText += "\nOrder Value: RM" + totalOrderValue;
+  
+  // Add birthday information if available
+  if (customerBirthday) {
+    var formattedBirthday = formatBirthday(customerBirthday);
+    if (formattedBirthday) {
+      noteText += "\nBirthday: " + formattedBirthday;
+    } else {
+      noteText += "\nBirthday: " + String(customerBirthday);
+    }
   }
   
-  // Add birthdays on new line (only if not skipped)
-  if (!skipBirthdayCheck && customerBirthdays.length > 0) {
-    noteText += "\nBirthdays: " + customerBirthdays.join(", ");
+  // Add golden card info if calculated
+  if (goldenCard) {
+    noteText += "\nGolden Card: " + goldenCard;
   }
 
-  // Create order payload (NOT draft order)
+  // Create order payload
   var payload = {
     "order": {
       "line_items": lineItems,
@@ -285,7 +454,7 @@ function onNewRow(e) {
       "financial_status": "pending",
       "send_receipt": false,
       "send_fulfillment_receipt": false,
-      "inventory_behaviour": "decrement_obeying_policy" // Important for orders
+      "inventory_behaviour": "decrement_obeying_policy"
     }
   };
 
@@ -310,9 +479,16 @@ function onNewRow(e) {
   var responseCode = response.getResponseCode();
   var data = JSON.parse(response.getContentText());
 
-  // Better error handling
+  // Handle response
   if (responseCode >= 200 && responseCode < 300 && data.order) {
-    sheet.getRange(row, 12).setValue("Order Created: " + data.order.id);
+    var resultMsg = "Order Created: " + data.order.id + " (RM" + totalOrderValue + ")";
+    if (goldenCard) {
+      resultMsg += " | Golden Card: " + goldenCard;
+    }
+    if (totalOrderValue >= 800) {
+      resultMsg += " | +2 Coins";
+    }
+    sheet.getRange(row, 13).setValue(resultMsg);
   } else {
     var errorMsg = "Error (" + responseCode + "): ";
     if (data.errors) {
@@ -320,9 +496,31 @@ function onNewRow(e) {
     } else {
       errorMsg += response.getContentText();
     }
-    sheet.getRange(row, 12).setValue(errorMsg);
+    sheet.getRange(row, 13).setValue(errorMsg);
     
     // Log full response for debugging
     console.log("Full API Response:", response.getContentText());
   }
+}
+
+function QIMEN(birthday, hour, minute) {
+  const date = new Date(birthday);
+  const year = date.getFullYear();
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+
+  const calculator = new QiMenDunJiaCalculator();
+  const r = calculator.calculateQiMen(year, month, day, hour, minute || 0);
+  return `遁甲:${r.basicInfo.dunJia}, 局数:${r.juShu}, 值符:${r.zhiFuZhiShi.zhiFu}, 黄金卡:${r.goldCard}`;
+}
+
+function QIMEN_ANALYSIS(birthday, hour, minute) {
+  const date = new Date(birthday);
+  const year = date.getFullYear();
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+
+  const calculator = new QiMenDunJiaCalculator();
+  const r = calculator.calculateQiMen(year, month, day, hour, minute || 0);
+  return JSON.stringify(r);
 }
