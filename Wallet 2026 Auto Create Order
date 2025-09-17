@@ -1,4 +1,4 @@
-//Auto Create Orders
+//Auto Create Order
 function formatBirthday(birthday) {
   if (!birthday) return "";
   
@@ -153,8 +153,8 @@ function onNewRow(e) {
     }
   }
 
-  var store = "37esih-yx.myshopify.com";   
-  var token = "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";
+  var store = "fep4d0-5w.myshopify.com";   
+  var token = "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";
 
   var customerId = null;
   var existingCustomer = null;
@@ -175,12 +175,13 @@ function onNewRow(e) {
 
   var lineItems = [];
   
+  //need to change to actual 钱包,钱种,铜钱 actual price and Variant ID 
   var products = {
-    "丰盛款": { variant_id: 46894587871444, price: "496.00", title: "丰盛款" },
-    "富豪款": { variant_id: 46894589444308, price: "397.00", title: "富豪款" },
-    "吸金款": { variant_id: 46894591312084, price: "196.00", title: "吸金款" },
-    "2025钱种": { variant_id: 46894777925844, price: "0.00", title: "2025 钱种" },
-    "天圆地方铜钱": { variant_id: 46894786609364, price: "0.00", title: "天圆地方铜钱" }
+    "丰盛款": { variant_id: 51863659675951, price: "496.00", title: "丰盛款" },
+    "富豪款": { variant_id: 51863659774255, price: "397.00", title: "富豪款" },
+    "吸金款": { variant_id: 51863659807023, price: "196.00", title: "吸金款" },
+    "2025钱种": { variant_id: 51863659872559, price: "0.00", title: "2025 钱种" },
+    "天圆地方铜钱": { variant_id: 51863660167471, price: "0.00", title: "天圆地方铜钱" }
   };
   
   if (qty丰盛款 > 0) {
@@ -207,7 +208,6 @@ function onNewRow(e) {
     });
   }
 
-  // 🆕 NEW LOGIC: Auto-add "2025 钱种" and "铜钱" when 富豪款 >= 2
   if (qty富豪款 >= 2) {
     // Add 2025 钱种
     lineItems.push({
