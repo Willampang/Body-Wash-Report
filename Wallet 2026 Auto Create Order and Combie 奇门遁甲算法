@@ -133,7 +133,8 @@ function formatBirthday(birthday) {
   }
 }
 
-function calculateQimenForBirthday(birthday, birthdayIndex) {
+// Modified function to accept birth hour parameter
+function calculateQimenForBirthday(birthday, birthHour) {
   if (!birthday) {
     console.log("No birthday provided");
     return null;
@@ -184,11 +185,26 @@ function calculateQimenForBirthday(birthday, birthdayIndex) {
     
     console.log("Date components - Year:", year, "Month:", month, "Day:", day);
     
-    // FIXED: Create much more variation between different birthdays
-    // Use birthdayIndex to ensure birthday1 and birthday2 get different cards
-    const baseHour = 8 + (birthdayIndex * 6); // birthday1=8, birthday2=14
-    const hour = (baseHour + (day % 8)) % 24;
-    const minute = ((day * 11) + (month * 7) + (birthdayIndex * 23)) % 60;
+    // Use birth hour from spreadsheet if provided, otherwise default calculation
+    var hour, minute;
+    if (birthHour && birthHour !== "") {
+      // Parse birth hour - could be in format like "14", "14:30", "2pm", etc.
+      var hourStr = String(birthHour).trim();
+      console.log("Birth hour from sheet:", hourStr);
+      
+      if (hourStr.includes(':')) {
+        var timeParts = hourStr.split(':');
+        hour = parseInt(timeParts[0]) || 8;
+        minute = parseInt(timeParts[1]) || 0;
+      } else {
+        hour = parseInt(hourStr) || 8;
+        minute = 0;
+      }
+    } else {
+      // Fallback to original calculation if no birth hour provided
+      hour = (8 + (day % 8)) % 24;
+      minute = ((day * 11) + (month * 7)) % 60;
+    }
     
     console.log("Calculation inputs - Hour:", hour, "Minute:", minute);
     
@@ -230,6 +246,7 @@ function onNewRow(e) {
   var postalCode = "";
   var phone = "";
   var customerBirthday = null;
+  var birthHour = ""; // New variable for birth hour
   var qty丰盛款 = 0;
   var qty富豪款 = 0;
   var qty吸金款 = 0;
@@ -244,11 +261,12 @@ function onNewRow(e) {
     postalCode = sheet.getRange(row, 7).getValue();     // Col G: Postal Code
     phone = sheet.getRange(row, 8).getValue();          // Col H: Phone
     customerBirthday = sheet.getRange(row, 9).getValue(); // Col I: Customer Birthday
-    qty丰盛款 = sheet.getRange(row, 10).getValue();      // Col J: 丰盛款
-    qty富豪款 = sheet.getRange(row, 11).getValue();      // Col K: 富豪款
-    qty吸金款 = sheet.getRange(row, 12).getValue();      // Col L: 吸金款
+    birthHour = sheet.getRange(row, 10).getValue();     // Col J: 出生时辰 (Birth Hour)
+    qty丰盛款 = sheet.getRange(row, 11).getValue();      // Col K: 丰盛款 (moved from col J)
+    qty富豪款 = sheet.getRange(row, 12).getValue();      // Col L: 富豪款 (moved from col K)
+    qty吸金款 = sheet.getRange(row, 13).getValue();      // Col M: 吸金款 (moved from col L)
   } catch (error) {
-    sheet.getRange(row, 13).setValue("Read Error: " + error.message);
+    sheet.getRange(row, 14).setValue("Read Error: " + error.message); // Updated result column
     return;
   }
   
@@ -260,23 +278,24 @@ function onNewRow(e) {
   country = country ? String(country).trim() : "";
   postalCode = postalCode ? String(postalCode).trim() : "";
   phone = phone ? String(phone).trim() : "";
+  birthHour = birthHour ? String(birthHour).trim() : "";
   
   qty丰盛款 = Number(qty丰盛款) || 0;
   qty富豪款 = Number(qty富豪款) || 0;
   qty吸金款 = Number(qty吸金款) || 0;
   
   if (!name) {
-    sheet.getRange(row, 13).setValue("Error: No name");
+    sheet.getRange(row, 14).setValue("Error: No name"); // Updated result column
     return;
   }
 
   if (!email) {
-    sheet.getRange(row, 13).setValue("Error: No email provided");
+    sheet.getRange(row, 14).setValue("Error: No email provided"); // Updated result column
     return;
   }
 
   if (qty丰盛款 <= 0 && qty富豪款 <= 0 && qty吸金款 <= 0) {
-    sheet.getRange(row, 13).setValue("No products ordered");
+    sheet.getRange(row, 14).setValue("No products ordered"); // Updated result column
     return;
   }
 
@@ -344,12 +363,11 @@ function onNewRow(e) {
   var totalOrderValue = (qty丰盛款 * 496) + (qty富豪款 * 397) + (qty吸金款 * 196);
   
   // Add bonus items based on order value
+  var copperCoinsQuantity = 0;
+  
   if (totalOrderValue >= 800) {
     // Add 2 copper coins for orders 800 and above
-    lineItems.push({
-      "variant_id": products["天圆地方铜钱"].variant_id,
-      "quantity": 2
-    });
+    copperCoinsQuantity = 2;
   }
   
   if (totalOrderValue >= 1500) {
@@ -357,27 +375,38 @@ function onNewRow(e) {
     lineItems.push({
       "variant_id": products["吸金款"].variant_id,
       "quantity": 1,
-      "price":0.00
+      "price": 0.00
     });
+    // 1500送三串铜钱
+    copperCoinsQuantity = 3;
   }
   
   if (totalOrderValue >= 2000) {
-    // Add 带财款 for first 100 customers (you'll need to add this product to your products list)
-    // For now, I'll add 丰盛款 as placeholder - you can update the variant_id
+    // Add 带财款 for first 100 customers
     lineItems.push({
-      "variant_id": products["带财款"].variant_id, // Update this to 带财款 variant_id
+      "variant_id": products["带财款"].variant_id,
       "quantity": 1,
-      "price":0.00
+      "price": 0.00
+    });
+    // 2000送四串铜钱
+    copperCoinsQuantity = 4;
+  }
+  
+  // Add copper coins if any are to be given
+  if (copperCoinsQuantity > 0) {
+    lineItems.push({
+      "variant_id": products["天圆地方铜钱"].variant_id,
+      "quantity": copperCoinsQuantity
     });
   }
 
-  // Calculate and add golden card if customer has any product and valid birthday
+  // Calculate and add golden card using birth hour if customer has any product and valid birthday
   var goldenCard = null;
   var totalProducts = qty丰盛款 + qty富豪款 + qty吸金款;
   
   if (totalProducts > 0 && customerBirthday) {
-    console.log("Processing birthday:", customerBirthday);
-    goldenCard = calculateQimenForBirthday(customerBirthday, 0);
+    console.log("Processing birthday:", customerBirthday, "Birth hour:", birthHour);
+    goldenCard = calculateQimenForBirthday(customerBirthday, birthHour); // Pass birth hour
     console.log("Calculated golden card:", goldenCard);
     
     if (goldenCard && products[goldenCard]) {
@@ -407,7 +436,6 @@ function onNewRow(e) {
     noteText += "\nEmail: " + email;
   }
   
-  // Add order value information
   noteText += "\nOrder Value: RM" + totalOrderValue;
   
   // Add birthday information if available
@@ -420,12 +448,15 @@ function onNewRow(e) {
     }
   }
   
-  // Add golden card info if calculated
+  // Add birth hour information if available
+  if (birthHour) {
+    noteText += "\nBirth Hour: " + birthHour;
+  }
+  
   if (goldenCard) {
     noteText += "\nGolden Card: " + goldenCard;
   }
 
-  // Create order payload
   var payload = {
     "order": {
       "line_items": lineItems,
@@ -485,10 +516,14 @@ function onNewRow(e) {
     if (goldenCard) {
       resultMsg += " | Golden Card: " + goldenCard;
     }
-    if (totalOrderValue >= 800) {
+    if (totalOrderValue >= 2000) {
+      resultMsg += " | +带财款+4 Coins";
+    } else if (totalOrderValue >= 1500) {
+      resultMsg += " | +吸金款+3 Coins";  
+    } else if (totalOrderValue >= 800) {
       resultMsg += " | +2 Coins";
     }
-    sheet.getRange(row, 13).setValue(resultMsg);
+    sheet.getRange(row, 14).setValue(resultMsg); // Updated result column
   } else {
     var errorMsg = "Error (" + responseCode + "): ";
     if (data.errors) {
@@ -496,7 +531,7 @@ function onNewRow(e) {
     } else {
       errorMsg += response.getContentText();
     }
-    sheet.getRange(row, 13).setValue(errorMsg);
+    sheet.getRange(row, 14).setValue(errorMsg); // Updated result column
     
     // Log full response for debugging
     console.log("Full API Response:", response.getContentText());
