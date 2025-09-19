@@ -436,8 +436,6 @@ function onNewRow(e) {
     noteText += "\nEmail: " + email;
   }
   
-  noteText += "\nOrder Value: RM" + totalOrderValue;
-  
   // Add birthday information if available
   if (customerBirthday) {
     var formattedBirthday = formatBirthday(customerBirthday);
@@ -448,12 +446,7 @@ function onNewRow(e) {
     }
   }
   
-  // Add birth hour information if available
-  if (birthHour) {
-    noteText += "\nBirth Hour: " + birthHour;
-  }
-  
-  if (goldenCard) {
+    if (goldenCard) {
     noteText += "\nGolden Card: " + goldenCard;
   }
 
