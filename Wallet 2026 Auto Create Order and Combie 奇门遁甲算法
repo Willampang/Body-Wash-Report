@@ -136,7 +136,6 @@ function formatBirthday(birthday) {
 // Modified function to accept birth hour parameter
 function calculateQimenForBirthday(birthday, birthHour) {
   if (!birthday) {
-    console.log("No birthday provided");
     return null;
   }
   
@@ -149,18 +148,14 @@ function calculateQimenForBirthday(birthday, birthHour) {
     } else if (typeof birthday === 'string') {
       // Clean up ordinal numbers (1st, 2nd, 3rd, 4th, etc.) from string
       var cleanBirthday = birthday.replace(/(\d+)(st|nd|rd|th)/g, '$1');
-      console.log("Cleaned birthday string:", cleanBirthday);
       date = new Date(cleanBirthday);
     } else {
       // Try to convert to date
       date = new Date(birthday);
     }
     
-    console.log("Parsed date:", date);
-    
     // Check if date is valid
     if (isNaN(date.getTime())) {
-      console.log("Invalid birthday format:", birthday);
       // Try alternative parsing for formats like "Sep 5th 2025"
       if (typeof birthday === 'string') {
         var parts = birthday.replace(/(\d+)(st|nd|rd|th)/g, '$1').split(' ');
@@ -169,7 +164,6 @@ function calculateQimenForBirthday(birthday, birthHour) {
           var dayStr = parts[1];
           var yearStr = parts[2];
           date = new Date(monthStr + ' ' + dayStr + ', ' + yearStr);
-          console.log("Alternative parsing result:", date);
         }
       }
       
@@ -183,14 +177,11 @@ function calculateQimenForBirthday(birthday, birthHour) {
     const month = date.getMonth() + 1;
     const day = date.getDate();
     
-    console.log("Date components - Year:", year, "Month:", month, "Day:", day);
-    
     // Use birth hour from spreadsheet if provided, otherwise default calculation
     var hour, minute;
     if (birthHour && birthHour !== "") {
       // Parse birth hour - could be in format like "14", "14:30", "2pm", etc.
       var hourStr = String(birthHour).trim();
-      console.log("Birth hour from sheet:", hourStr);
       
       if (hourStr.includes(':')) {
         var timeParts = hourStr.split(':');
@@ -206,15 +197,10 @@ function calculateQimenForBirthday(birthday, birthHour) {
       minute = ((day * 11) + (month * 7)) % 60;
     }
     
-    console.log("Calculation inputs - Hour:", hour, "Minute:", minute);
-    
     const result = calculator.calculateQiMen(year, month, day, hour, minute);
-    console.log("Qimen calculation result:", result);
-    console.log("Golden card:", result.goldCard);
     
     return result.goldCard;
   } catch (e) {
-    console.log("Qimen calculation error:", e.message, e.stack);
     return null;
   }
 }
@@ -246,10 +232,12 @@ function onNewRow(e) {
   var postalCode = "";
   var phone = "";
   var customerBirthday = null;
-  var birthHour = ""; // New variable for birth hour
+  var birthHour = ""; // Birth hour
   var qty丰盛款 = 0;
   var qty富豪款 = 0;
   var qty吸金款 = 0;
+  var qty聚财款 = 0; // New product
+  var qty带财款 = 0; // Add 带财款
   
   try {
     name = sheet.getRange(row, 1).getValue();           // Col A: Name
@@ -262,11 +250,13 @@ function onNewRow(e) {
     phone = sheet.getRange(row, 8).getValue();          // Col H: Phone
     customerBirthday = sheet.getRange(row, 9).getValue(); // Col I: Customer Birthday
     birthHour = sheet.getRange(row, 10).getValue();     // Col J: 出生时辰 (Birth Hour)
-    qty丰盛款 = sheet.getRange(row, 11).getValue();      // Col K: 丰盛款 (moved from col J)
-    qty富豪款 = sheet.getRange(row, 12).getValue();      // Col L: 富豪款 (moved from col K)
-    qty吸金款 = sheet.getRange(row, 13).getValue();      // Col M: 吸金款 (moved from col L)
+    qty丰盛款 = sheet.getRange(row, 11).getValue();      // Col K: 丰盛款
+    qty富豪款 = sheet.getRange(row, 12).getValue();      // Col L: 富豪款
+    qty吸金款 = sheet.getRange(row, 13).getValue();      // Col M: 吸金款
+    qty聚财款 = sheet.getRange(row, 14).getValue();      // Col N: 聚财款
+    qty带财款 = sheet.getRange(row, 15).getValue();      // Col O: 带财款
   } catch (error) {
-    sheet.getRange(row, 14).setValue("Read Error: " + error.message); // Updated result column
+    sheet.getRange(row, 16).setValue("Read Error: " + error.message); // Result column P
     return;
   }
   
@@ -283,19 +273,21 @@ function onNewRow(e) {
   qty丰盛款 = Number(qty丰盛款) || 0;
   qty富豪款 = Number(qty富豪款) || 0;
   qty吸金款 = Number(qty吸金款) || 0;
+  qty聚财款 = Number(qty聚财款) || 0;
+  qty带财款 = Number(qty带财款) || 0;
   
   if (!name) {
-    sheet.getRange(row, 14).setValue("Error: No name"); // Updated result column
+    sheet.getRange(row, 16).setValue("Error: No name");
     return;
   }
 
   if (!email) {
-    sheet.getRange(row, 14).setValue("Error: No email provided"); // Updated result column
+    sheet.getRange(row, 16).setValue("Error: No email provided");
     return;
   }
 
-  if (qty丰盛款 <= 0 && qty富豪款 <= 0 && qty吸金款 <= 0) {
-    sheet.getRange(row, 14).setValue("No products ordered"); // Updated result column
+  if (qty丰盛款 <= 0 && qty富豪款 <= 0 && qty吸金款 <= 0 && qty聚财款 <= 0 && qty带财款 <= 0) {
+    sheet.getRange(row, 16).setValue("No products ordered");
     return;
   }
 
@@ -325,6 +317,7 @@ function onNewRow(e) {
     "丰盛款": { variant_id: 51863659675951, price: "496.00", title: "丰盛款" },
     "富豪款": { variant_id: 51863659774255, price: "397.00", title: "富豪款" },
     "吸金款": { variant_id: 51863659807023, price: "196.00", title: "吸金款" },
+    "聚财款": { variant_id: 51868714402095, price: "496.00", title: "聚财款" }, // NEW PRODUCT
     "带财款": { variant_id: 51864000102703, price: "296.00", title: "带财款" },
     "2025钱种": { variant_id: 51863659872559, price: "0.00", title: "2025 钱种" },
     "天圆地方铜钱": { variant_id: 51863660167471, price: "0.00", title: "天圆地方铜钱" },
@@ -359,8 +352,22 @@ function onNewRow(e) {
     });
   }
 
-  // Calculate total order value
-  var totalOrderValue = (qty丰盛款 * 496) + (qty富豪款 * 397) + (qty吸金款 * 196);
+  if (qty聚财款 > 0) {
+    lineItems.push({
+      "variant_id": products["聚财款"].variant_id,
+      "quantity": qty聚财款
+    });
+  }
+
+  if (qty带财款 > 0) {
+    lineItems.push({
+      "variant_id": products["带财款"].variant_id,
+      "quantity": qty带财款
+    });
+  }
+
+  // Calculate total order value (including 聚财款 and 带财款)
+  var totalOrderValue = (qty丰盛款 * 496) + (qty富豪款 * 397) + (qty吸金款 * 196) + (qty聚财款 * 496) + (qty带财款 * 296);
   
   // Add bonus items based on order value
   var copperCoinsQuantity = 0;
@@ -402,24 +409,17 @@ function onNewRow(e) {
 
   // Calculate and add golden card using birth hour if customer has any product and valid birthday
   var goldenCard = null;
-  var totalProducts = qty丰盛款 + qty富豪款 + qty吸金款;
+  var totalProducts = qty丰盛款 + qty富豪款 + qty吸金款 + qty聚财款 + qty带财款;
   
   if (totalProducts > 0 && customerBirthday) {
-    console.log("Processing birthday:", customerBirthday, "Birth hour:", birthHour);
-    goldenCard = calculateQimenForBirthday(customerBirthday, birthHour); // Pass birth hour
-    console.log("Calculated golden card:", goldenCard);
+    goldenCard = calculateQimenForBirthday(customerBirthday, birthHour);
     
     if (goldenCard && products[goldenCard]) {
       lineItems.push({
         "variant_id": products[goldenCard].variant_id,
         "quantity": 1
       });
-      console.log("Added golden card to order:", goldenCard);
-    } else {
-      console.log("Golden card not found in products or calculation failed");
     }
-  } else {
-    console.log("No products ordered or no birthday provided");
   }
 
   var customerData = {};
@@ -446,7 +446,7 @@ function onNewRow(e) {
     }
   }
   
-    if (goldenCard) {
+  if (goldenCard) {
     noteText += "\nGolden Card: " + goldenCard;
   }
 
@@ -516,7 +516,7 @@ function onNewRow(e) {
     } else if (totalOrderValue >= 800) {
       resultMsg += " | +2 Coins";
     }
-    sheet.getRange(row, 14).setValue(resultMsg); // Updated result column
+    sheet.getRange(row, 16).setValue(resultMsg);
   } else {
     var errorMsg = "Error (" + responseCode + "): ";
     if (data.errors) {
@@ -524,10 +524,7 @@ function onNewRow(e) {
     } else {
       errorMsg += response.getContentText();
     }
-    sheet.getRange(row, 14).setValue(errorMsg); // Updated result column
-    
-    // Log full response for debugging
-    console.log("Full API Response:", response.getContentText());
+    sheet.getRange(row, 16).setValue(errorMsg);
   }
 }
 
