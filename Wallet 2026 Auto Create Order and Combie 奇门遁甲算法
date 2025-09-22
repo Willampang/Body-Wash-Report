@@ -461,8 +461,8 @@ function onNewRow(e) {
     qty丰盛款 = sheet.getRange(row, 11).getValue();      // Col K: 丰盛款
     qty富豪款 = sheet.getRange(row, 12).getValue();      // Col L: 富豪款
     qty吸金款 = sheet.getRange(row, 13).getValue();      // Col M: 吸金款
-    qty聚财款 = sheet.getRange(row, 14).getValue();      // Col N: 聚财款
-    qty带财款 = sheet.getRange(row, 15).getValue();      // Col O: 带财款
+    qty带财款 = sheet.getRange(row, 14).getValue();      // Col O: 带财款
+    qty聚财款 = sheet.getRange(row, 15).getValue();      // Col N: 聚财款
   } catch (error) {
     sheet.getRange(row, 16).setValue("Read Error: " + error.message); // Result column P
     return;
