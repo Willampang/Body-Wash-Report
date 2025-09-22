@@ -291,8 +291,8 @@ function onNewRow(e) {
     return;
   }
 
-  var store = "fep4d0-5w.myshopify.com";   
-  var token = "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";
+  var store = "ns6gks-k1.myshopify.com";   
+  var token = "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";
 
   var customerId = null;
   var existingCustomer = null;
@@ -314,21 +314,20 @@ function onNewRow(e) {
   var lineItems = []; 
   
   var products = {
-    "丰盛款": { variant_id: 51863659675951, price: "496.00", title: "丰盛款" },
-    "富豪款": { variant_id: 51863659774255, price: "397.00", title: "富豪款" },
-    "吸金款": { variant_id: 51863659807023, price: "196.00", title: "吸金款" },
-    "聚财款": { variant_id: 51868714402095, price: "496.00", title: "聚财款" }, // NEW PRODUCT
-    "带财款": { variant_id: 51864000102703, price: "296.00", title: "带财款" },
-    "2025钱种": { variant_id: 51863659872559, price: "0.00", title: "2025 钱种" },
-    "天圆地方铜钱": { variant_id: 51863660167471, price: "0.00", title: "天圆地方铜钱" },
-    "乾宫": { variant_id: 51863660396847, price: "0.00", title: "乾宫" },
-    "坎宫": { variant_id: 51863660560687, price: "0.00", title: "坎宫" },
-    "艮宫": { variant_id: 51863660626223, price: "0.00", title: "艮宫" },
-    "震宫": { variant_id: 51863660921135, price: "0.00", title: "震宫" },
-    "巽宫": { variant_id: 51863660953903, price: "0.00", title: "巽宫" },
-    "离宫": { variant_id: 51863661543727, price: "0.00", title: "离宫" },
-    "坤宫": { variant_id: 51863661642031, price: "0.00", title: "坤宫" },
-    "兑宫": { variant_id: 51863662068015, price: "0.00", title: "兑宫" }
+    "丰盛款": { variant_id: 51126212001924, price: "496.00", title: "丰盛款" },
+    "富豪款": { variant_id: 51126213738628, price: "397.00", title: "富豪款" },
+    "吸金款": { variant_id: 51126213771396, price: "196.00", title: "吸金款" },
+    "聚财款": { variant_id: 51126213836932, price: "496.00", title: "聚财款" }, // NEW PRODUCT
+    "带财款": { variant_id: 51126213869700, price: "296.00", title: "带财款" },
+    "天圆地方铜钱": { variant_id: 51126213902468, price: "0.00", title: "天圆地方铜钱" },
+    "乾宫": { variant_id: 51126213968004, price: "0.00", title: "乾宫" },
+    "坎宫": { variant_id: 51126214033540, price: "0.00", title: "坎宫" },
+    "艮宫": { variant_id: 51126214099076, price: "0.00", title: "艮宫" },
+    "震宫": { variant_id: 51126214131844, price: "0.00", title: "震宫" },
+    "巽宫": { variant_id: 51126214164612, price: "0.00", title: "巽宫" },
+    "离宫": { variant_id: 51126214197380, price: "0.00", title: "离宫" },
+    "坤宫": { variant_id: 51126214262916, price: "0.00", title: "坤宫" },
+    "兑宫": { variant_id: 51126217670788, price: "0.00", title: "兑宫" }
   };
   
   if (qty丰盛款 > 0) {
@@ -369,34 +368,29 @@ function onNewRow(e) {
   // Calculate total order value (including 聚财款 and 带财款)
   var totalOrderValue = (qty丰盛款 * 496) + (qty富豪款 * 397) + (qty吸金款 * 196) + (qty聚财款 * 496) + (qty带财款 * 296);
   
-  // Add bonus items based on order value
+  // Add bonus items based on order value - EXCLUSIVE TIERS
   var copperCoinsQuantity = 0;
   
-  if (totalOrderValue >= 800) {
-    // Add 2 copper coins for orders 800 and above
-    copperCoinsQuantity = 2;
-  }
-  
-  if (totalOrderValue >= 1500) {
-    // Add 吸金款 for first 100 customers (you may need to track this separately)
-    lineItems.push({
-      "variant_id": products["吸金款"].variant_id,
-      "quantity": 1,
-      "price": 0.00
-    });
-    // 1500送三串铜钱
-    copperCoinsQuantity = 3;
-  }
-  
+  // Check tiers from highest to lowest (exclusive)
   if (totalOrderValue >= 2000) {
-    // Add 带财款 for first 100 customers
+    // 2000+ tier: Only 带财款 + 4 copper coins
     lineItems.push({
       "variant_id": products["带财款"].variant_id,
       "quantity": 1,
       "price": 0.00
     });
-    // 2000送四串铜钱
     copperCoinsQuantity = 4;
+  } else if (totalOrderValue >= 1500) {
+    // 1500-1999 tier: Only 吸金款 + 3 copper coins
+    lineItems.push({
+      "variant_id": products["吸金款"].variant_id,
+      "quantity": 1,
+      "price": 0.00
+    });
+    copperCoinsQuantity = 3;
+  } else if (totalOrderValue >= 800) {
+    // 800-1499 tier: Only 2 copper coins
+    copperCoinsQuantity = 2;
   }
   
   // Add copper coins if any are to be given
