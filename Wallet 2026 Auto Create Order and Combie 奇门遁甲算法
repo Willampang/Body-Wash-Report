@@ -111,18 +111,232 @@ class QiMenDunJiaCalculator {
   }
 }
 
+// Enhanced flexible birthday parser
+function parseFlexibleBirthday(birthdayInput) {
+  if (!birthdayInput) return null;
+  
+  try {
+    // If it's already a Date object, return it
+    if (birthdayInput instanceof Date && !isNaN(birthdayInput.getTime())) {
+      return birthdayInput;
+    }
+    
+    // Convert to string and clean up
+    let dateStr = String(birthdayInput).trim();
+    
+    // Remove ordinal suffixes (1st, 2nd, 3rd, 4th, etc.)
+    dateStr = dateStr.replace(/(\d+)(st|nd|rd|th)/gi, '$1');
+    
+    // Remove extra spaces and normalize separators
+    dateStr = dateStr.replace(/\s+/g, ' ').trim();
+    
+    // Array of date formats to try
+    const formats = [
+      // ISO formats
+      /^(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})$/, // yyyy-mm-dd, yyyy/mm/dd, yyyy.mm.dd
+      /^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})$/, // dd-mm-yyyy, dd/mm/yyyy, dd.mm.yyyy, mm-dd-yyyy, mm/dd/yyyy, mm.dd.yyyy
+      /^(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})$/, // yyyy-dd-mm, yyyy/dd/mm, yyyy.dd.mm (duplicate but kept for clarity)
+      
+      // Month name formats
+      /^([A-Za-z]{3,9})\s+(\d{1,2})[,\s]*(\d{4})$/, // "January 15 2024", "Jan 15, 2024"
+      /^(\d{1,2})\s+([A-Za-z]{3,9})[,\s]*(\d{4})$/, // "15 January 2024", "15 Jan, 2024"
+      /^(\d{4})\s+([A-Za-z]{3,9})\s+(\d{1,2})$/, // "2024 January 15"
+      
+      // Compact formats
+      /^(\d{8})$/, // 20240115 (YYYYMMDD)
+      /^(\d{2})(\d{2})(\d{4})$/, // 15012024 (DDMMYYYY)
+      /^(\d{4})(\d{2})(\d{2})$/, // 20240115 (YYYYMMDD)
+    ];
+    
+    let parsedDate = null;
+    
+    // Try standard JavaScript Date parsing first
+    parsedDate = new Date(dateStr);
+    if (!isNaN(parsedDate.getTime()) && parsedDate.getFullYear() > 1900 && parsedDate.getFullYear() < 2100) {
+      return parsedDate;
+    }
+    
+    // Try different formats
+    for (let i = 0; i < formats.length; i++) {
+      const match = dateStr.match(formats[i]);
+      if (match) {
+        let year, month, day;
+        
+        switch (i) {
+          case 0: // yyyy-mm-dd format
+            year = parseInt(match[1]);
+            month = parseInt(match[2]);
+            day = parseInt(match[3]);
+            break;
+            
+          case 1: // dd-mm-yyyy or mm-dd-yyyy format
+            // Try to determine if it's DD-MM-YYYY or MM-DD-YYYY
+            const first = parseInt(match[1]);
+            const second = parseInt(match[2]);
+            year = parseInt(match[3]);
+            
+            // If first number > 12, it must be day (DD-MM-YYYY)
+            if (first > 12) {
+              day = first;
+              month = second;
+            }
+            // If second number > 12, it must be day (MM-DD-YYYY)
+            else if (second > 12) {
+              month = first;
+              day = second;
+            }
+            // Both <= 12, assume DD-MM-YYYY (common international format)
+            else {
+              day = first;
+              month = second;
+            }
+            break;
+            
+          case 2: // yyyy-dd-mm format (less common but possible)
+            year = parseInt(match[1]);
+            day = parseInt(match[2]);
+            month = parseInt(match[3]);
+            break;
+            
+          case 3: // Month name first: "January 15 2024"
+            month = getMonthNumber(match[1]);
+            day = parseInt(match[2]);
+            year = parseInt(match[3]);
+            break;
+            
+          case 4: // Day first: "15 January 2024"
+            day = parseInt(match[1]);
+            month = getMonthNumber(match[2]);
+            year = parseInt(match[3]);
+            break;
+            
+          case 5: // Year first: "2024 January 15"
+            year = parseInt(match[1]);
+            month = getMonthNumber(match[2]);
+            day = parseInt(match[3]);
+            break;
+            
+          case 6: // YYYYMMDD (8 digits)
+            const dateNum = match[1];
+            year = parseInt(dateNum.substring(0, 4));
+            month = parseInt(dateNum.substring(4, 6));
+            day = parseInt(dateNum.substring(6, 8));
+            break;
+            
+          case 7: // DDMMYYYY
+            day = parseInt(match[1]);
+            month = parseInt(match[2]);
+            year = parseInt(match[3]);
+            break;
+            
+          case 8: // YYYYMMDD (alternative)
+            year = parseInt(match[1]);
+            month = parseInt(match[2]);
+            day = parseInt(match[3]);
+            break;
+        }
+        
+        // Validate date components
+        if (year && month && day && 
+            year >= 1900 && year <= 2100 && 
+            month >= 1 && month <= 12 && 
+            day >= 1 && day <= 31) {
+          
+          // Create date and validate it's real (handles leap years, days per month)
+          parsedDate = new Date(year, month - 1, day);
+          if (parsedDate.getFullYear() === year && 
+              parsedDate.getMonth() === (month - 1) && 
+              parsedDate.getDate() === day) {
+            return parsedDate;
+          }
+        }
+      }
+    }    
+    // Handle formats like "2024-1-5" or "5-1-2024"
+    const parts = dateStr.split(/[\/\-\.\s,]+/).filter(p => p && p.match(/\d/));
+    if (parts.length >= 3) {
+      const nums = parts.map(p => parseInt(p)).filter(n => !isNaN(n));
+      if (nums.length >= 3) {
+        // Try different arrangements
+        const arrangements = [
+          [nums[0], nums[1], nums[2]], // as given
+          [nums[2], nums[1], nums[0]], // reverse
+          [nums[1], nums[0], nums[2]], // swap first two
+        ];
+        
+        for (let arr of arrangements) {
+          // Determine year, month, day
+          let year, month, day;
+          
+          // Find the year (4 digits or > 31)
+          if (arr[0] > 31 || arr[0].toString().length === 4) {
+            year = arr[0];
+            month = arr[1];
+            day = arr[2];
+          } else if (arr[2] > 31 || arr[2].toString().length === 4) {
+            day = arr[0];
+            month = arr[1];
+            year = arr[2];
+          } else if (arr[1] > 31 || arr[1].toString().length === 4) {
+            month = arr[0];
+            year = arr[1];
+            day = arr[2];
+          }
+          
+          // Handle 2-digit years
+          if (year && year < 100) {
+            year += (year < 50) ? 2000 : 1900;
+          }
+          
+          if (year && month && day && 
+              year >= 1900 && year <= 2100 && 
+              month >= 1 && month <= 12 && 
+              day >= 1 && day <= 31) {
+            
+            parsedDate = new Date(year, month - 1, day);
+            if (parsedDate.getFullYear() === year && 
+                parsedDate.getMonth() === (month - 1) && 
+                parsedDate.getDate() === day) {
+              return parsedDate;
+            }
+          }
+        }
+      }
+    }
+    
+    return null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function getMonthNumber(monthStr) {
+  const months = {
+    'january': 1, 'jan': 1,
+    'february': 2, 'feb': 2,
+    'march': 3, 'mar': 3,
+    'april': 4, 'apr': 4,
+    'may': 5,
+    'june': 6, 'jun': 6,
+    'july': 7, 'jul': 7,
+    'august': 8, 'aug': 8,
+    'september': 9, 'sep': 9, 'sept': 9,
+    'october': 10, 'oct': 10,
+    'november': 11, 'nov': 11,
+    'december': 12, 'dec': 12
+  };
+  
+  return months[monthStr.toLowerCase()] || parseInt(monthStr);
+}
+
+// Updated formatBirthday function
 function formatBirthday(birthday) {
   if (!birthday) return "";
   
   try {
-    var date;
-    if (birthday instanceof Date) {
-      date = birthday;
-    } else {
-      date = new Date(birthday);
-    }
+    const date = parseFlexibleBirthday(birthday);
     
-    if (isNaN(date.getTime())) {
+    if (!date) {
       return String(birthday);
     }
     
@@ -133,43 +347,18 @@ function formatBirthday(birthday) {
   }
 }
 
-// Modified function to accept birth hour parameter
+// Updated calculateQimenForBirthday function
 function calculateQimenForBirthday(birthday, birthHour) {
   if (!birthday) {
     return null;
   }
   
   try {
-    var date;
+    // Use the flexible birthday parser
+    const date = parseFlexibleBirthday(birthday);
     
-    // Handle different birthday formats
-    if (birthday instanceof Date) {
-      date = birthday;
-    } else if (typeof birthday === 'string') {
-      // Clean up ordinal numbers (1st, 2nd, 3rd, 4th, etc.) from string
-      var cleanBirthday = birthday.replace(/(\d+)(st|nd|rd|th)/g, '$1');
-      date = new Date(cleanBirthday);
-    } else {
-      // Try to convert to date
-      date = new Date(birthday);
-    }
-    
-    // Check if date is valid
-    if (isNaN(date.getTime())) {
-      // Try alternative parsing for formats like "Sep 5th 2025"
-      if (typeof birthday === 'string') {
-        var parts = birthday.replace(/(\d+)(st|nd|rd|th)/g, '$1').split(' ');
-        if (parts.length >= 3) {
-          var monthStr = parts[0];
-          var dayStr = parts[1];
-          var yearStr = parts[2];
-          date = new Date(monthStr + ' ' + dayStr + ', ' + yearStr);
-        }
-      }
-      
-      if (isNaN(date.getTime())) {
-        return null;
-      }
+    if (!date) {
+      return null;
     }
     
     const calculator = new QiMenDunJiaCalculator();
@@ -183,6 +372,13 @@ function calculateQimenForBirthday(birthday, birthHour) {
       // Parse birth hour - could be in format like "14", "14:30", "2pm", etc.
       var hourStr = String(birthHour).trim();
       
+      // Handle AM/PM format
+      let isPM = /pm|p\.m\.|下午/i.test(hourStr);
+      let isAM = /am|a\.m\.|上午/i.test(hourStr);
+      
+      // Clean the hour string
+      hourStr = hourStr.replace(/[apm\.上下午\s]/gi, '');
+      
       if (hourStr.includes(':')) {
         var timeParts = hourStr.split(':');
         hour = parseInt(timeParts[0]) || 8;
@@ -191,6 +387,18 @@ function calculateQimenForBirthday(birthday, birthHour) {
         hour = parseInt(hourStr) || 8;
         minute = 0;
       }
+      
+      // Convert 12-hour to 24-hour format
+      if (isPM && hour < 12) {
+        hour += 12;
+      } else if (isAM && hour === 12) {
+        hour = 0;
+      }
+      
+      // Ensure hour is within valid range
+      hour = Math.max(0, Math.min(23, hour));
+      minute = Math.max(0, Math.min(59, minute));
+      
     } else {
       // Fallback to original calculation if no birth hour provided
       hour = (8 + (day % 8)) % 24;
@@ -523,23 +731,31 @@ function onNewRow(e) {
 }
 
 function QIMEN(birthday, hour, minute) {
-  const date = new Date(birthday);
+  const date = parseFlexibleBirthday(birthday);
+  if (!date) {
+    return "Invalid date format";
+  }
+  
   const year = date.getFullYear();
   const month = date.getMonth() + 1;
   const day = date.getDate();
 
   const calculator = new QiMenDunJiaCalculator();
-  const r = calculator.calculateQiMen(year, month, day, hour, minute || 0);
+  const r = calculator.calculateQiMen(year, month, day, hour || 0, minute || 0);
   return `遁甲:${r.basicInfo.dunJia}, 局数:${r.juShu}, 值符:${r.zhiFuZhiShi.zhiFu}, 黄金卡:${r.goldCard}`;
 }
 
 function QIMEN_ANALYSIS(birthday, hour, minute) {
-  const date = new Date(birthday);
+  const date = parseFlexibleBirthday(birthday);
+  if (!date) {
+    return JSON.stringify({ error: "Invalid date format" });
+  }
+  
   const year = date.getFullYear();
   const month = date.getMonth() + 1;
   const day = date.getDate();
 
   const calculator = new QiMenDunJiaCalculator();
-  const r = calculator.calculateQiMen(year, month, day, hour, minute || 0);
+  const r = calculator.calculateQiMen(year, month, day, hour || 0, minute || 0);
   return JSON.stringify(r);
 }
