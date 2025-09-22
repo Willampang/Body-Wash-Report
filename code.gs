@@ -18,10 +18,10 @@ function getCurrentTotalsFromDailyReport() {
   var spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
   var reportSheet = getMonthlyReportSheet(spreadsheet);
 
-  // Default values - UPDATED to include COD
+  // Default values - UPDATED to remove COD
   var totals = {
-    fb: { enquiry: 1254, waiting: 8, drop: 7, cod: 1, closedCustomers: 34, closedB3F1: 29, closedSingle: 6 },
-    organic: { enquiry: 4, waiting: 0, drop: 0, cod: 0, closedCustomers: 4, closedB3F1: 4, closedSingle: 0 }
+    fb: { enquiry: 1254, waiting: 8, drop: 7, closedCustomers: 34, closedB3F1: 29, closedSingle: 6 },
+    organic: { enquiry: 4, waiting: 0, drop: 0, closedCustomers: 4, closedB3F1: 4, closedSingle: 0 }
   };
 
   if (!reportSheet) {
@@ -57,11 +57,6 @@ function getCurrentTotalsFromDailyReport() {
         totals.fb.drop = Number(allData[i][2]) || totals.fb.drop;
         console.log('FB Drop found: ' + totals.fb.drop);
       }
-      // NEW: COD processing for FB
-      if (cellValue.includes('COD:')) {
-        totals.fb.cod = Number(allData[i][2]) || totals.fb.cod;
-        console.log('FB COD found: ' + totals.fb.cod);
-      }
       if (cellValue.includes('Closed:') && !cellValue.includes('Total')) {
         totals.fb.closedCustomers = Number(allData[i][2]) || totals.fb.closedCustomers;
         console.log('FB Closed Customers found: ' + totals.fb.closedCustomers);
@@ -94,11 +89,6 @@ function getCurrentTotalsFromDailyReport() {
         totals.organic.drop = Number(allData[i][6]) || totals.organic.drop;
         console.log('Organic Drop found: ' + totals.organic.drop);
       }
-      // NEW: COD processing for Organic
-      if (organicCellValue.includes('COD:')) {
-        totals.organic.cod = Number(allData[i][6]) || totals.organic.cod;
-        console.log('Organic COD found: ' + totals.organic.cod);
-      }
       if (organicCellValue.includes('Closed:') && !organicCellValue.includes('Total')) {
         totals.organic.closedCustomers = Number(allData[i][6]) || totals.organic.closedCustomers;
         console.log('Organic Closed Customers found: ' + totals.organic.closedCustomers);
@@ -125,27 +115,26 @@ function submitData(data) {
     var currentTotals = getCurrentTotalsFromDailyReport();
     var spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
 
-    // Create summary sheet (Sheet1) if missing with updated headers - UPDATED to include COD
+    // Create summary sheet (Sheet1) if missing with updated headers - UPDATED to remove COD
     var summarySheet = spreadsheet.getSheetByName("Sheet1");
     if (!summarySheet) {
       summarySheet = spreadsheet.insertSheet("Sheet1");
       summarySheet.appendRow([
         "Date",
-        "FB Enquiry", "FB Waiting Payment", "FB Drop", "FB COD", "FB Closed",
-        "Organic Enquiry", "Organic Waiting Payment", "Organic Drop", "Organic COD", "Organic Closed",
+        "FB Enquiry", "FB Waiting Payment", "FB Drop", "FB Closed",
+        "Organic Enquiry", "Organic Waiting Payment", "Organic Drop", "Organic Closed",
         "Total Sales", "Today Closed",
-        "Today Total Enquiry", "Today Waiting Payment", "Today Total Drop", "Today Total COD", "Today Total Closed"
+        "Today Total Enquiry", "Today Waiting Payment", "Today Total Drop", "Today Total Closed"
       ]);
     }
 
     var date = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd");
     var today = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "dd/MM/yyyy");
 
-    // Convert input values (allow negative values for deductions) - UPDATED to include COD
+    // Convert input values (allow negative values for deductions) - UPDATED to remove COD
     var fbEnquiry = parseFloat(data.fbEnquiry) || 0;
     var fbWaiting = parseFloat(data.fbWaiting) || 0;
     var fbDrop = parseFloat(data.fbDrop) || 0;
-    var fbCod = parseFloat(data.fbCod) || 0;  // NEW
     var fbClosedB3F1 = parseFloat(data.fbClosedB3F1) || 0;
     var fbClosedSingle = parseFloat(data.fbClosedSingle) || 0;
     var fbClosedCustomers = parseFloat(data.fbClosedCustomers) || 0;
@@ -153,7 +142,6 @@ function submitData(data) {
     var organicEnquiry = parseFloat(data.organicEnquiry) || 0;
     var organicWaiting = parseFloat(data.organicWaiting) || 0;
     var organicDrop = parseFloat(data.organicDrop) || 0;
-    var organicCod = parseFloat(data.organicCod) || 0;  // NEW
     var organicClosedB3F1 = parseFloat(data.organicClosedB3F1) || 0;
     var organicClosedSingle = parseFloat(data.organicClosedSingle) || 0;
     var organicClosedCustomers = parseFloat(data.organicClosedCustomers) || 0;
@@ -169,57 +157,51 @@ function submitData(data) {
     var totalSales = (fbClosedB3F1 * 487) + (fbClosedSingle * 167) +
                      (organicClosedB3F1 * 487) + (organicClosedSingle * 167);
 
-    // Calculate today's changes for daily input - UPDATED to include COD
+    // Calculate today's changes for daily input - UPDATED to remove COD
     var todayTotalEnquiry = fbEnquiry + organicEnquiry;
     var todayWaitingPayment = fbWaiting + organicWaiting;
     var todayTotalDrop = fbDrop + organicDrop;
-    var todayTotalCod = fbCod + organicCod;  // NEW
     var todayTotalClosed = fbClosedCustomers + organicClosedCustomers;
 
-    // Calculate CUMULATIVE totals (current totals + today's changes/deductions) - UPDATED to include COD
+    // Calculate CUMULATIVE totals (current totals + today's changes/deductions) - UPDATED to remove COD
     var cumulativeTotalEnquiry = (currentTotals.fb.enquiry + currentTotals.organic.enquiry) + todayTotalEnquiry;
     var cumulativeWaitingPayment = (currentTotals.fb.waiting + currentTotals.organic.waiting) + todayWaitingPayment;
     var cumulativeTotalDrop = (currentTotals.fb.drop + currentTotals.organic.drop) + todayTotalDrop;
-    var cumulativeTotalCod = (currentTotals.fb.cod + currentTotals.organic.cod) + todayTotalCod;  // NEW
     var cumulativeTotalClosed = (currentTotals.fb.closedCustomers + currentTotals.organic.closedCustomers) + todayTotalClosed;
 
-    // Ensure cumulative values don't go below 0 - UPDATED to include COD
+    // Ensure cumulative values don't go below 0 - UPDATED to remove COD
     cumulativeTotalEnquiry = Math.max(0, cumulativeTotalEnquiry);
     cumulativeWaitingPayment = Math.max(0, cumulativeWaitingPayment);
     cumulativeTotalDrop = Math.max(0, cumulativeTotalDrop);
-    cumulativeTotalCod = Math.max(0, cumulativeTotalCod);  // NEW
     cumulativeTotalClosed = Math.max(0, cumulativeTotalClosed);
     
-    // UPDATED: Map the data to the correct columns - UPDATED to include COD
+    // UPDATED: Map the data to the correct columns - UPDATED to remove COD
     summarySheet.appendRow([
       date,
-      // FB Ad columns - UPDATED to include COD
+      // FB Ad columns - UPDATED to remove COD
       fbEnquiry,              // Column B: Enquiry 
       fbWaiting,              // Column C: Waiting Payment  
       fbDrop,                 // Column D: Drop
-      fbCod,                  // Column E: COD (NEW)
-      fbClosedCustomers,      // Column F: Closed (FB customers closed today)
-      // Organic/WhatsApp columns - UPDATED to include COD
-      organicEnquiry,         // Column G: Enquiry(Whatsapp)
-      organicWaiting,         // Column H: No Reply(Whatsapp) 
-      organicDrop,            // Column I: Drop(Whatsapp)
-      organicCod,             // Column J: COD(Whatsapp) (NEW)
-      organicClosedCustomers, // Column K: Closed(Whatsapp) (Organic customers closed today)
-      // Summary columns - UPDATED column positions due to COD
-      totalSales,             // Column L: Total Sales
-      combinedTodaysClosed,   // Column M: Today Closed
-      cumulativeTotalEnquiry, // Column N: Today Total Enquiry
-      cumulativeWaitingPayment, // Column O: Today Waiting Payment
-      cumulativeTotalDrop,    // Column P: Today Total Drop
-      cumulativeTotalCod,     // Column Q: Today Total COD (NEW)
-      cumulativeTotalClosed   // Column R: Today Total Closed
+      fbClosedCustomers,      // Column E: Closed (FB customers closed today)
+      // Organic/WhatsApp columns - UPDATED to remove COD
+      organicEnquiry,         // Column F: Enquiry(Whatsapp)
+      organicWaiting,         // Column G: No Reply(Whatsapp) 
+      organicDrop,            // Column H: Drop(Whatsapp)
+      organicClosedCustomers, // Column I: Closed(Whatsapp) (Organic customers closed today)
+      // Summary columns - UPDATED column positions due to removed COD
+      totalSales,             // Column J: Total Sales
+      combinedTodaysClosed,   // Column K: Today Closed
+      cumulativeTotalEnquiry, // Column L: Today Total Enquiry
+      cumulativeWaitingPayment, // Column M: Today Waiting Payment
+      cumulativeTotalDrop,    // Column N: Today Total Drop
+      cumulativeTotalClosed   // Column O: Today Total Closed
     ]);
 
-    // Append to monthly report (keeping the ORIGINAL logic) - UPDATED to include COD
+    // Append to monthly report (keeping the ORIGINAL logic) - UPDATED to remove COD
     appendToDailyReport(spreadsheet, {
       date: today,
-      fb: { enquiry: fbEnquiry, waiting: fbWaiting, drop: fbDrop, cod: fbCod, closedCustomers: fbClosedCustomers, closedB3F1: fbClosedB3F1, closedSingle: fbClosedSingle, closedTotal: fbClosedTotal },
-      organic: { enquiry: organicEnquiry, waiting: organicWaiting, drop: organicDrop, cod: organicCod, closedCustomers: organicClosedCustomers, closedB3F1: organicClosedB3F1, closedSingle: organicClosedSingle, closedTotal: organicClosedTotal },
+      fb: { enquiry: fbEnquiry, waiting: fbWaiting, drop: fbDrop, closedCustomers: fbClosedCustomers, closedB3F1: fbClosedB3F1, closedSingle: fbClosedSingle, closedTotal: fbClosedTotal },
+      organic: { enquiry: organicEnquiry, waiting: organicWaiting, drop: organicDrop, closedCustomers: organicClosedCustomers, closedB3F1: organicClosedB3F1, closedSingle: organicClosedSingle, closedTotal: organicClosedTotal },
       fbTodaysClosed: fbTodaysClosed,
       organicTodaysClosed: organicTodaysClosed,
       combinedTodaysClosed: combinedTodaysClosed,
@@ -260,38 +242,34 @@ function createDailyReportSection(sheet, startRow, data, totals) {
   sheet.getRange(startRow + 3, 7).setValue("Total").setHorizontalAlignment("center");
   sheet.getRange(startRow + 3, 8).setValue("--").setHorizontalAlignment("center");
   
-  // Calculate new totals with safety checks - UPDATED to include COD
+  // Calculate new totals with safety checks - UPDATED to remove COD
   var newFbEnquiry = Math.max(0, totals.fb.enquiry + data.fb.enquiry);
   var newFbWaiting = Math.max(0, totals.fb.waiting + data.fb.waiting);
   var newFbDrop = Math.max(0, totals.fb.drop + data.fb.drop);
-  var newFbCod = Math.max(0, totals.fb.cod + data.fb.cod);  // NEW
   var newFbClosed = Math.max(0, totals.fb.closedCustomers + data.fb.closedCustomers);
   
   var newOrganicEnquiry = Math.max(0, totals.organic.enquiry + data.organic.enquiry);
   var newOrganicWaiting = Math.max(0, totals.organic.waiting + data.organic.waiting);
   var newOrganicDrop = Math.max(0, totals.organic.drop + data.organic.drop);
-  var newOrganicCod = Math.max(0, totals.organic.cod + data.organic.cod);  // NEW
   var newOrganicClosed = Math.max(0, totals.organic.closedCustomers + data.organic.closedCustomers);
   
-  // FB Ad section (main table) - UPDATED to include COD
+  // FB Ad section (main table) - UPDATED to remove COD
   var fbRows = [
     ["Contact:", formatChange(data.fb.enquiry), newFbEnquiry, "--"],
     ["Waiting Payment:", formatChange(data.fb.waiting), newFbWaiting, "--"],
     ["Drop:", formatChange(data.fb.drop), newFbDrop, "--"],
-    ["COD:", formatChange(data.fb.cod), newFbCod, "--"],  // NEW
     ["Closed:", formatChange(data.fb.closedCustomers), newFbClosed, "--"]
   ];
   
-  // Organic section (main table) - UPDATED to include COD
+  // Organic section (main table) - UPDATED to remove COD
   var organicRows = [
     ["Contact:", formatChange(data.organic.enquiry), newOrganicEnquiry, "--"],
     ["Waiting Payment:", formatChange(data.organic.waiting), newOrganicWaiting, "--"],
     ["Drop:", formatChange(data.organic.drop), newOrganicDrop, "--"],
-    ["COD:", formatChange(data.organic.cod), newOrganicCod, "--"],  // NEW
     ["Closed:", formatChange(data.organic.closedCustomers), newOrganicClosed, "--"]
   ];
   
-  // Fill FB and Organic data with center alignment - UPDATED for 5 rows instead of 4
+  // Fill FB and Organic data with center alignment - UPDATED for 4 rows (back to original)
   for (var i = 0; i < fbRows.length; i++) {
     var row = startRow + 4 + i;
     sheet.getRange(row, 1).setValue(fbRows[i][0]).setHorizontalAlignment("center");
@@ -305,8 +283,8 @@ function createDailyReportSection(sheet, startRow, data, totals) {
     sheet.getRange(row, 8).setValue(organicRows[i][3]).setHorizontalAlignment("center");
   }
   
-  // Sales section headers - UPDATED row position due to COD row
-  var salesStartRow = startRow + 10;  // Changed from 9 to 10
+  // Sales section headers - UPDATED row position back to original
+  var salesStartRow = startRow + 9;  // Changed back from 10 to 9
   sheet.getRange(salesStartRow, 1, 1, 4).merge();
   sheet.getRange(salesStartRow, 1).setValue("Total Sales (RM)").setHorizontalAlignment("center");
   sheet.getRange(salesStartRow, 5, 1, 4).merge();
@@ -361,7 +339,7 @@ function createDailyReportSection(sheet, startRow, data, totals) {
   sheet.getRange(salesStartRow + 3, 6).setValue(organicClosedPercentage + "%").setHorizontalAlignment("center");
   sheet.getRange(salesStartRow + 3, 8).setValue(organicTotalAmount.toFixed(2)).setHorizontalAlignment("center");
   
-  // *** TODAY SUMMARY FORMAT - UPDATED to include COD ***
+  // *** TODAY SUMMARY FORMAT - UPDATED to remove COD ***
   var summaryStartRow = startRow + 3;
   var summaryColumn = 10; // Column J
   
@@ -372,23 +350,21 @@ function createDailyReportSection(sheet, startRow, data, totals) {
   sheet.getRange(summaryStartRow, summaryColumn).setValue("Today (" + dateShort + ") 6:00PM").setHorizontalAlignment("center");
   sheet.getRange(summaryStartRow, summaryColumn + 2).setValue("Total").setHorizontalAlignment("center");
   
-  // Calculate summary totals (cumulative totals after today's changes) - UPDATED to include COD
+  // Calculate summary totals (cumulative totals after today's changes) - UPDATED to remove COD
   var summaryTotalEnquiry = newFbEnquiry + newOrganicEnquiry;
   var summaryTotalWaiting = newFbWaiting + newOrganicWaiting;
   var summaryTotalDrop = newFbDrop + newOrganicDrop;
-  var summaryTotalCod = newFbCod + newOrganicCod;  // NEW
   var summaryTotalClosed = newFbClosed + newOrganicClosed;
   
-  // Original summary data format (3 columns: Label, Change, Total) - UPDATED to include COD
+  // Original summary data format (3 columns: Label, Change, Total) - UPDATED to remove COD
   var summaryRows = [
     ["Enquiry (" + formatChange(data.fb.enquiry + data.organic.enquiry) + ")", "", summaryTotalEnquiry],
     ["Waiting Payment (" + formatChange(data.fb.waiting + data.organic.waiting) + ")", "", summaryTotalWaiting],
     ["Drop (" + formatChange(data.fb.drop + data.organic.drop) + ")", "", summaryTotalDrop],
-    ["COD (" + formatChange(data.fb.cod + data.organic.cod) + ")", "", summaryTotalCod],  // NEW
     ["Closed (" + formatChange(data.fb.closedCustomers + data.organic.closedCustomers) + ")", "", summaryTotalClosed]
   ];
   
-  // Fill original summary data format - UPDATED for 5 rows instead of 4
+  // Fill original summary data format - UPDATED for 4 rows (back to original)
   for (var i = 0; i < summaryRows.length; i++) {
     var row = summaryStartRow + 1 + i;
     sheet.getRange(row, summaryColumn, 1, 2).merge(); // Merge first two columns for the label
@@ -396,8 +372,8 @@ function createDailyReportSection(sheet, startRow, data, totals) {
     sheet.getRange(row, summaryColumn + 2).setValue(summaryRows[i][2]).setHorizontalAlignment("center");
   }
 
-  // Apply formatting - UPDATED row count
-  formatDailyReportSection(sheet, startRow, summaryStartRow + 5);  // Changed from 4 to 5
+  // Apply formatting - UPDATED row count back to original
+  formatDailyReportSection(sheet, startRow, summaryStartRow + 4);  // Changed back from 5 to 4
 }
 
 function formatChange(value) {
@@ -434,12 +410,12 @@ function formatDailyReportSection(sheet, startRow, endRow) {
   sheet.getRange(summaryStartRow, 10, 1, 2).setBackground("#f4cccc").setFontColor("black").setFontWeight("bold").setHorizontalAlignment("center");
   sheet.getRange(summaryStartRow, 12).setBackground("#f4cccc").setFontColor("black").setFontWeight("bold").setHorizontalAlignment("center");
   
-  // Main table backgrounds - UPDATED for 5 rows instead of 4
-  sheet.getRange(startRow + 4, 1, 5, 4).setBackground("#b7e1cd"); // FB Ad section
-  sheet.getRange(startRow + 4, 5, 5, 4).setBackground("#fce8b2"); // Organic section
+  // Main table backgrounds - UPDATED for 4 rows (back to original)
+  sheet.getRange(startRow + 4, 1, 4, 4).setBackground("#b7e1cd"); // FB Ad section
+  sheet.getRange(startRow + 4, 5, 4, 4).setBackground("#fce8b2"); // Organic section
   
-  // Sales section headers - UPDATED row position
-  var salesStartRow = startRow + 10;  // Changed from 9 to 10
+  // Sales section headers - UPDATED row position back to original
+  var salesStartRow = startRow + 9;  // Changed back from 10 to 9
   sheet.getRange(salesStartRow, 1).setBackground("#c9daf8").setFontColor("black").setFontWeight("bold").setHorizontalAlignment("center");
   sheet.getRange(salesStartRow, 5).setBackground("#d9d2e9").setFontColor("black").setFontWeight("bold").setHorizontalAlignment("center");
   
@@ -450,7 +426,7 @@ function formatDailyReportSection(sheet, startRow, endRow) {
   // Add borders
   sheet.getRange(salesStartRow, 1, 4, 4).setBorder(true, true, true, true, true, true); // FB Sales section
   sheet.getRange(salesStartRow, 5, 4, 4).setBorder(true, true, true, true, true, true); // Organic Sales section
-  sheet.getRange(summaryStartRow, 10, 6, 3).setBorder(true, true, true, true, true, true); // Original summary section (3 columns, 6 rows now)
+  sheet.getRange(summaryStartRow, 10, 5, 3).setBorder(true, true, true, true, true, true); // Original summary section (3 columns, 5 rows now back to 4)
   
   // Center align all content
   sheet.getRange(startRow, 1, endRow - startRow + 10, 16).setHorizontalAlignment("center");
