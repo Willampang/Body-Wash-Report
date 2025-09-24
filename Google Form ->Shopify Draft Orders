@@ -532,71 +532,65 @@ function updateShopifyOrderWithGoldenCard(orderId, goldenCard) {
 
 function onFormSubmit(e) {
   try {
-    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Sheet1") || SpreadsheetApp.getActiveSpreadsheet().insertSheet("Sheet1");
+    // ✅ Get or create "Sheet1"
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Sheet1") 
+      || SpreadsheetApp.getActiveSpreadsheet().insertSheet("Sheet1");
+
+    // ✅ Add headers if first row is empty
     if (sheet.getLastRow() === 0) {
-      sheet.appendRow(["Name","Email","Birthday","BirthHour","Shopify ID","Golden Card","Status","Shopify Update","Timestamp"]);
+      sheet.appendRow([
+        "Name","Email","Birthday","BirthHour","Shopify ID",
+        "Golden Card","Status","Shopify Update","Timestamp"
+      ]);
     }
 
+    // ✅ Read form input
     const row = e.values;
     const name = row[1] || "";
     const email = row[2] || "";
     const birthday = row[3] || "";
     const birthHour = row[4] || "";
-    let shopifyId = row[5] || "";
+    let shopifyId = row[5] || ""; // can be blank if not provided
 
+    // ✅ Calculate golden card
     let goldenCard = null;
     let status = "";
-    
     try {
       goldenCard = calculateQimenForBirthday(birthday, birthHour);
-      if (goldenCard) {
-        status = "Golden card calculated: " + goldenCard;
-      } else {
-        status = "Error: Could not calculate golden card";
-      }
+      status = goldenCard 
+        ? "Golden card calculated: " + goldenCard 
+        : "Error: Could not calculate golden card";
     } catch (calcError) {
       status = "Error: " + calcError.message;
     }
 
+    // ✅ Try to fetch Shopify Order ID if missing
+    if (!shopifyId && email) {
+      const latestOrderId = getLatestOrderIdByEmail(email);
+      if (latestOrderId) {
+        shopifyId = "#" + latestOrderId; // format like Shopify UI
+      }
+    }
+
+    // ✅ Default Shopify update status
     let shopifyUpdateStatus = "Not attempted";
-    
+
+    // ✅ Update customer profile with golden card
     if (goldenCard && email) {
       const customerResult = addGoldenCardToCustomer(email, goldenCard);
-      
+
       if (customerResult.success) {
         shopifyUpdateStatus = "SUCCESS: Customer profile updated with " + goldenCard;
-        
-        try {
-          const draftResult = createDraftOrderWithGoldenCard(customerResult.customerId, goldenCard);
-          if (draftResult.success) {
-            shopifyUpdateStatus += " + Draft order created";
-          }
-        } catch (draftError) {
-          // Non-critical error, continue
-        }
-        
       } else {
-        const orderId = shopifyId ? String(shopifyId).replace('#','') : getLatestOrderIdByEmail(email);
-        
-        if (orderId) {
-          const orderResult = updateShopifyOrderWithGoldenCard(orderId, goldenCard);
-          
-          if (orderResult.success) {
-            shopifyUpdateStatus = "SUCCESS: Order updated with " + goldenCard;
-          } else {
-            shopifyUpdateStatus = "FAILED: " + customerResult.error + " | Order update: " + orderResult.error;
-          }
-        } else {
-          shopifyUpdateStatus = "FAILED: " + customerResult.error + " | No order found";
-        }
+        shopifyUpdateStatus = "FAILED: " + customerResult.error;
       }
-      
     } else if (goldenCard && !email) {
       shopifyUpdateStatus = "No email provided - cannot update Shopify";
     } else {
       shopifyUpdateStatus = "No golden card calculated - Shopify update skipped";
     }
-    
+
+    // ✅ Save results into Google Sheet
     sheet.appendRow([
       name, 
       email, 
@@ -610,25 +604,20 @@ function onFormSubmit(e) {
     ]);
 
   } catch (e) {
+    // ✅ Critical system-level error logging
     try {
       const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Sheet1");
       if (sheet) {
         sheet.appendRow([
-          "SYSTEM ERROR", 
-          "", 
-          "", 
-          "", 
-          "", 
-          "", 
+          "SYSTEM ERROR", "", "", "", "", "", 
           "Critical system error: " + e.toString(), 
           "Failed", 
           new Date()
         ]);
       }
     } catch (logError) {
-      // Silently continue
+      // silently continue if even logging fails
     }
-    
     throw e;
   }
 }
