@@ -280,7 +280,8 @@ const GOLDEN_CARD_VARIANTS = {
   "兑宫": { variant_id: 51126217670788, price: "0.00", title: "兑宫" }
 };
 
-function addGoldenCardToCustomer(email, goldenCard) {
+// Helper function to get customer by email
+function getCustomerByEmail(email) {
   try {
     const customerSearchUrl = `https://${SHOPIFY_STORE}/admin/api/${API_VERSION}/customers/search.json?query=email:${encodeURIComponent(email)}`;
     const searchOptions = {
@@ -307,7 +308,21 @@ function addGoldenCardToCustomer(email, goldenCard) {
       return { success: false, error: 'Customer not found with email: ' + email };
     }
     
-    const customer = customers[0];
+    return { success: true, customer: customers[0] };
+    
+  } catch (e) {
+    return { success: false, error: e.toString() };
+  }
+}
+
+function addGoldenCardToCustomer(email, goldenCard) {
+  try {
+    const customerResult = getCustomerByEmail(email);
+    if (!customerResult.success) {
+      return customerResult;
+    }
+    
+    const customer = customerResult.customer;
     const customerId = customer.id;
     
     const updateUrl = `https://${SHOPIFY_STORE}/admin/api/${API_VERSION}/customers/${customerId}.json`;
@@ -360,7 +375,14 @@ function addGoldenCardToCustomer(email, goldenCard) {
 
 function getLatestOrderIdByEmail(email) {
   try {
-    const customerUrl = `https://${SHOPIFY_STORE}/admin/api/${API_VERSION}/customers/search.json?query=email:${encodeURIComponent(email)}`;
+    const customerResult = getCustomerByEmail(email);
+    if (!customerResult.success) {
+      return null;
+    }
+    
+    const customerId = customerResult.customer.id;
+    
+    const ordersUrl = `https://${SHOPIFY_STORE}/admin/api/${API_VERSION}/orders.json?customer_id=${customerId}&status=any&limit=1&order=created_at desc`;
     const options = { 
       method: 'GET', 
       headers: { 
@@ -370,22 +392,6 @@ function getLatestOrderIdByEmail(email) {
       } 
     };
     
-    const resp = UrlFetchApp.fetch(customerUrl, options);
-    const responseCode = resp.getResponseCode();
-    const responseText = resp.getContentText();
-    
-    if (responseCode !== 200) {
-      return null;
-    }
-    
-    const customers = JSON.parse(responseText).customers;
-    if (!customers || customers.length === 0) {
-      return null;
-    }
-    
-    const customerId = customers[0].id;
-
-    const ordersUrl = `https://${SHOPIFY_STORE}/admin/api/${API_VERSION}/orders.json?customer_id=${customerId}&status=any&limit=1&order=created_at desc`;
     const ordersResp = UrlFetchApp.fetch(ordersUrl, options);
     const ordersResponseCode = ordersResp.getResponseCode();
     const ordersText = ordersResp.getContentText();
@@ -401,7 +407,7 @@ function getLatestOrderIdByEmail(email) {
   }
 }
 
-function createDraftOrderWithGoldenCard(customerId, goldenCard) {
+function createDraftOrderWithGoldenCard(customerId, goldenCard, relatedOrderId = null) {
   const variantInfo = GOLDEN_CARD_VARIANTS[goldenCard];
   if (!variantInfo) {
     return { success: false, error: "Unknown golden card: " + goldenCard };
@@ -410,19 +416,30 @@ function createDraftOrderWithGoldenCard(customerId, goldenCard) {
   try {
     const draftOrderUrl = `https://${SHOPIFY_STORE}/admin/api/${API_VERSION}/draft_orders.json`;
     
+    // Create the note based on whether we have a related order
+    let note = `Golden card ${goldenCard} - Auto-calculated based on birth information`;
+    let tags = `golden-card,${goldenCard},auto-generated`;
+    
+    if (relatedOrderId) {
+      note += `. Related to order #${relatedOrderId}`;
+      tags += `,related-to-${relatedOrderId}`;
+    }
+    
     const draftOrderData = {
       draft_order: {
         line_items: [{
           variant_id: parseInt(variantInfo.variant_id),
           quantity: 1,
           price: variantInfo.price,
-          title: variantInfo.title
+          title: `${variantInfo.title} - Complementary Golden Card`
         }],
         customer: {
           id: customerId
         },
-        note: `Golden card ${goldenCard} - Auto-calculated based on birth information`,
-        tags: `golden-card,${goldenCard},auto-generated`
+        note: note,
+        tags: tags,
+        tax_exempt: true, // Since it's free
+        use_customer_default_address: true
       }
     };
     
@@ -445,7 +462,8 @@ function createDraftOrderWithGoldenCard(customerId, goldenCard) {
       return { 
         success: true, 
         draftOrderId: draftOrder.id,
-        response: `Draft order created with ID: ${draftOrder.id}` 
+        draftOrderName: draftOrder.name,
+        response: `Draft order created: ${draftOrder.name} (ID: ${draftOrder.id})` 
       };
     } else {
       return { 
@@ -459,69 +477,44 @@ function createDraftOrderWithGoldenCard(customerId, goldenCard) {
   }
 }
 
-function updateShopifyOrderWithGoldenCard(orderId, goldenCard) {
-  const variantInfo = GOLDEN_CARD_VARIANTS[goldenCard];
-  if (!variantInfo) {
-    return { success: false, error: "Unknown golden card: " + goldenCard };
-  }
-  
+// Main function to handle golden card processing
+function handleGoldenCardForCustomer(email, goldenCard, relatedOrderId = null) {
   try {
-    const getOrderUrl = `https://${SHOPIFY_STORE}/admin/api/${API_VERSION}/orders/${orderId}.json`;
-    const getOptions = {
-      method: 'GET',
-      headers: {
-        'X-Shopify-Access-Token': ACCESS_TOKEN,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      }
-    };
-    
-    const getResp = UrlFetchApp.fetch(getOrderUrl, getOptions);
-    if (getResp.getResponseCode() !== 200) {
-      return { success: false, error: `Order ${orderId} not found or not accessible` };
+    // Step 1: Get customer info
+    const customerResult = getCustomerByEmail(email);
+    if (!customerResult.success) {
+      return { success: false, error: customerResult.error };
     }
     
-    const orderData = JSON.parse(getResp.getContentText()).order;
+    const customerId = customerResult.customer.id;
+    const results = [];
     
-    if (orderData.cancelled_at || 
-        orderData.financial_status === 'paid' || 
-        orderData.fulfillment_status === 'fulfilled') {
-      return { 
-        success: false, 
-        error: 'Order cannot be modified (cancelled/paid/fulfilled). Using customer profile approach instead.' 
-      };
-    }
-    
-    const addUrl = `https://${SHOPIFY_STORE}/admin/api/${API_VERSION}/orders/${orderId}/line_items.json`;
-    const payload = {
-      line_item: {
-        variant_id: parseInt(variantInfo.variant_id),
-        quantity: 1,
-        price: variantInfo.price,
-        title: variantInfo.title
-      }
-    };
-    
-    const options = {
-      method: 'POST',
-      headers: {
-        'X-Shopify-Access-Token': ACCESS_TOKEN,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
-      payload: JSON.stringify(payload)
-    };
-    
-    const resp = UrlFetchApp.fetch(addUrl, options);
-    const responseCode = resp.getResponseCode();
-    const responseText = resp.getContentText();
-    
-    if (responseCode === 201) {
-      return { success: true, response: `Golden card added to order ${orderId}` };
+    // Step 2: Update customer profile
+    const customerUpdateResult = addGoldenCardToCustomer(email, goldenCard);
+    if (customerUpdateResult.success) {
+      results.push("Customer profile updated");
     } else {
-      return { 
-        success: false, 
-        error: `Order update failed: HTTP ${responseCode} - ${responseText}` 
+      results.push("Customer update failed: " + customerUpdateResult.error);
+    }
+    
+    // Step 3: Create draft order
+    const draftOrderResult = createDraftOrderWithGoldenCard(customerId, goldenCard, relatedOrderId);
+    if (draftOrderResult.success) {
+      results.push(`Draft order created: ${draftOrderResult.draftOrderName}`);
+      return {
+        success: true,
+        customerId: customerId,
+        draftOrderId: draftOrderResult.draftOrderId,
+        draftOrderName: draftOrderResult.draftOrderName,
+        response: results.join(" | ")
+      };
+    } else {
+      results.push("Draft order failed: " + draftOrderResult.error);
+      return {
+        success: customerUpdateResult.success, // At least customer was updated
+        customerId: customerId,
+        response: results.join(" | "),
+        warning: "Draft order creation failed"
       };
     }
     
@@ -540,7 +533,7 @@ function onFormSubmit(e) {
     if (sheet.getLastRow() === 0) {
       sheet.appendRow([
         "Name","Email","Birthday","BirthHour","Shopify ID",
-        "Golden Card","Status","Shopify Update","Timestamp"
+        "Golden Card","Status","Shopify Update","Draft Order","Timestamp"
       ]);
     }
 
@@ -572,17 +565,28 @@ function onFormSubmit(e) {
       }
     }
 
-    // ✅ Default Shopify update status
+    // ✅ Initialize status variables
     let shopifyUpdateStatus = "Not attempted";
+    let draftOrderInfo = "Not created";
 
-    // ✅ Update customer profile with golden card
+    // ✅ Process golden card if available
     if (goldenCard && email) {
-      const customerResult = addGoldenCardToCustomer(email, goldenCard);
-
-      if (customerResult.success) {
-        shopifyUpdateStatus = "SUCCESS: Customer profile updated with " + goldenCard;
+      // Extract numeric order ID for reference
+      const orderIdMatch = shopifyId.match(/\d+/);
+      const numericOrderId = orderIdMatch ? orderIdMatch[0] : null;
+      
+      const result = handleGoldenCardForCustomer(email, goldenCard, numericOrderId);
+      
+      if (result.success) {
+        shopifyUpdateStatus = "SUCCESS: " + result.response;
+        if (result.draftOrderName) {
+          draftOrderInfo = result.draftOrderName;
+        }
+        if (result.warning) {
+          shopifyUpdateStatus += " (Warning: " + result.warning + ")";
+        }
       } else {
-        shopifyUpdateStatus = "FAILED: " + customerResult.error;
+        shopifyUpdateStatus = "FAILED: " + result.error;
       }
     } else if (goldenCard && !email) {
       shopifyUpdateStatus = "No email provided - cannot update Shopify";
@@ -600,6 +604,7 @@ function onFormSubmit(e) {
       goldenCard, 
       status, 
       shopifyUpdateStatus, 
+      draftOrderInfo,
       new Date()
     ]);
 
@@ -612,6 +617,7 @@ function onFormSubmit(e) {
           "SYSTEM ERROR", "", "", "", "", "", 
           "Critical system error: " + e.toString(), 
           "Failed", 
+          "N/A",
           new Date()
         ]);
       }
