@@ -1,3 +1,4 @@
+// ===== QiMen DunJia Calculator (unchanged) =====
 class QiMenDunJiaCalculator {
   constructor() {
     this.tianGan = ['甲','乙','丙','丁','戊','己','庚','辛','壬','癸'];
@@ -265,22 +266,23 @@ function calculateQimenForBirthday(birthday, birthHour) {
   }
 }
 
-const SHOPIFY_STORE = 'ns6gks-k1.myshopify.com';
-const ACCESS_TOKEN = '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';
+// ===== SHOPIFY CONFIGURATION =====
+const SHOPIFY_STORE = 'fsr2021.myshopify.com';
+const ACCESS_TOKEN = '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';
 const API_VERSION = '2024-01';
 
 const GOLDEN_CARD_VARIANTS = {
-  "乾宫": { variant_id: 51126213968004, price: "0.00", title: "乾宫" },
-  "坎宫": { variant_id: 51126214033540, price: "0.00", title: "坎宫" },
-  "艮宫": { variant_id: 51126214099076, price: "0.00", title: "艮宫" },
-  "震宫": { variant_id: 51126214131844, price: "0.00", title: "震宫" },
-  "巽宫": { variant_id: 51126214164612, price: "0.00", title: "巽宫" },
-  "离宫": { variant_id: 51126214197380, price: "0.00", title: "离宫" },
-  "坤宫": { variant_id: 51126214262916, price: "0.00", title: "坤宫" },
-  "兑宫": { variant_id: 51126217670788, price: "0.00", title: "兑宫" }
+  "乾宫": { variant_id: 51339662229803, price: "0.00", title: "乾宫" },
+  "坎宫": { variant_id: 51339662197035, price: "0.00", title: "坎宫" },
+  "艮宫": { variant_id: 51339662164267, price: "0.00", title: "艮宫" },
+  "震宫": { variant_id: 51339662131499, price: "0.00", title: "震宫" },
+  "巽宫": { variant_id: 47263613812888, price: "0.00", title: "巽宫" },
+  "离宫": { variant_id: 51339662065963, price: "0.00", title: "离宫" },
+  "坤宫": { variant_id: 51339662000427, price: "0.00", title: "坤宫" },
+  "兑宫": { variant_id: 51339661934891, price: "0.00", title: "兑宫" }
 };
 
-// Helper function to get customer by email
+// ===== HELPER FUNCTIONS =====
 function getCustomerByEmail(email) {
   try {
     const customerSearchUrl = `https://${SHOPIFY_STORE}/admin/api/${API_VERSION}/customers/search.json?query=email:${encodeURIComponent(email)}`;
@@ -373,7 +375,7 @@ function addGoldenCardToCustomer(email, goldenCard) {
   }
 }
 
-function getLatestOrderIdByEmail(email) {
+function getLatestOrderByEmail(email) {
   try {
     const customerResult = getCustomerByEmail(email);
     if (!customerResult.success) {
@@ -401,84 +403,233 @@ function getLatestOrderIdByEmail(email) {
     }
     
     const orders = JSON.parse(ordersText).orders;
+    return orders && orders.length > 0 ? orders[0] : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+// ===== NEW FUNCTION: GET ORDER ID FROM ORDER NAME =====
+function getOrderIdFromName(orderName) {
+  try {
+    // Remove # if present and get just the order name
+    const cleanName = orderName.replace('#', '').trim();
+    
+    const searchUrl = `https://${SHOPIFY_STORE}/admin/api/${API_VERSION}/orders.json?name=${encodeURIComponent(cleanName)}&status=any&limit=1`;
+    const options = {
+      method: 'GET',
+      headers: {
+        'X-Shopify-Access-Token': ACCESS_TOKEN,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      muteHttpExceptions: true
+    };
+    
+    const resp = UrlFetchApp.fetch(searchUrl, options);
+    if (resp.getResponseCode() !== 200) {
+      return null;
+    }
+    
+    const orders = JSON.parse(resp.getContentText()).orders;
     return orders && orders.length > 0 ? orders[0].id : null;
   } catch (e) {
     return null;
   }
 }
 
-function createDraftOrderWithGoldenCard(customerId, goldenCard, relatedOrderId = null) {
+// ===== NEW FUNCTION: ADD GOLDEN CARD TO EXISTING ORDER =====
+function addGoldenCardToOrder(orderId, goldenCard) {
   const variantInfo = GOLDEN_CARD_VARIANTS[goldenCard];
   if (!variantInfo) {
     return { success: false, error: "Unknown golden card: " + goldenCard };
   }
   
   try {
-    const draftOrderUrl = `https://${SHOPIFY_STORE}/admin/api/${API_VERSION}/draft_orders.json`;
-    
-    // Create the note based on whether we have a related order
-    let note = `Golden card ${goldenCard} - Auto-calculated based on birth information`;
-    let tags = `golden-card,${goldenCard},auto-generated`;
-    
-    if (relatedOrderId) {
-      note += `. Related to order #${relatedOrderId}`;
-      tags += `,related-to-${relatedOrderId}`;
+    // Convert order name to order ID if needed
+    let numericOrderId = orderId;
+    if (isNaN(orderId) || orderId.toString().match(/[A-Za-z]/)) {
+      numericOrderId = getOrderIdFromName(orderId);
+      if (!numericOrderId) {
+        return { success: false, error: `Could not find order with name: ${orderId}` };
+      }
     }
     
-    const draftOrderData = {
-      draft_order: {
-        line_items: [{
-          variant_id: parseInt(variantInfo.variant_id),
-          quantity: 1,
-          price: variantInfo.price,
-          title: `${variantInfo.title} - Complementary Golden Card`
-        }],
-        customer: {
-          id: customerId
-        },
-        note: note,
-        tags: tags,
-        tax_exempt: true, // Since it's free
-        use_customer_default_address: true
-      }
-    };
-    
-    const options = {
-      method: 'POST',
+    // First, get the order details to check if it's editable
+    const getOrderUrl = `https://${SHOPIFY_STORE}/admin/api/${API_VERSION}/orders/${numericOrderId}.json`;
+    const getOptions = {
+      method: 'GET',
       headers: {
         'X-Shopify-Access-Token': ACCESS_TOKEN,
         'Content-Type': 'application/json',
         'Accept': 'application/json'
       },
-      payload: JSON.stringify(draftOrderData)
+      muteHttpExceptions: true
     };
     
-    const resp = UrlFetchApp.fetch(draftOrderUrl, options);
-    const responseCode = resp.getResponseCode();
-    const responseText = resp.getContentText();
+    const getResp = UrlFetchApp.fetch(getOrderUrl, getOptions);
+    if (getResp.getResponseCode() !== 200) {
+      return { success: false, error: "Could not fetch order details: " + getResp.getContentText() };
+    }
     
-    if (responseCode === 201) {
-      const draftOrder = JSON.parse(responseText).draft_order;
+    const order = JSON.parse(getResp.getContentText()).order;
+    
+    // Check if order already has this golden card item
+    const existingGoldenCard = order.line_items.find(item => 
+      item.variant_id === parseInt(variantInfo.variant_id)
+    );
+    
+    if (existingGoldenCard) {
       return { 
         success: true, 
-        draftOrderId: draftOrder.id,
-        draftOrderName: draftOrder.name,
-        response: `Draft order created: ${draftOrder.name} (ID: ${draftOrder.id})` 
-      };
-    } else {
-      return { 
-        success: false, 
-        error: `Draft order failed: HTTP ${responseCode} - ${responseText}` 
+        skipped: true,
+        response: `Order ${order.name} already has ${goldenCard}` 
       };
     }
+    
+    // Use GraphQL Admin API for order editing (more reliable)
+    const graphqlUrl = `https://${SHOPIFY_STORE}/admin/api/${API_VERSION}/graphql.json`;
+    
+    // Step 1: Begin order edit
+    const beginEditMutation = `
+      mutation orderEditBegin($id: ID!) {
+        orderEditBegin(id: $id) {
+          calculatedOrder {
+            id
+          }
+          userErrors {
+            field
+            message
+          }
+        }
+      }
+    `;
+    
+    const beginEditVariables = {
+      id: `gid://shopify/Order/${numericOrderId}`
+    };
+    
+    const beginOptions = {
+      method: 'POST',
+      headers: {
+        'X-Shopify-Access-Token': ACCESS_TOKEN,
+        'Content-Type': 'application/json'
+      },
+      payload: JSON.stringify({
+        query: beginEditMutation,
+        variables: beginEditVariables
+      }),
+      muteHttpExceptions: true
+    };
+    
+    const beginResp = UrlFetchApp.fetch(graphqlUrl, beginOptions);
+    const beginResult = JSON.parse(beginResp.getContentText());
+    
+    if (beginResult.errors || beginResult.data.orderEditBegin.userErrors.length > 0) {
+      const errors = beginResult.errors || beginResult.data.orderEditBegin.userErrors;
+      return { success: false, error: `Failed to begin order edit: ${JSON.stringify(errors)}` };
+    }
+    
+    const calculatedOrderId = beginResult.data.orderEditBegin.calculatedOrder.id;
+    
+    // Step 2: Add line item
+    const addItemMutation = `
+      mutation orderEditAddVariant($id: ID!, $variantId: ID!, $quantity: Int!) {
+        orderEditAddVariant(id: $id, variantId: $variantId, quantity: $quantity) {
+          calculatedOrder {
+            id
+          }
+          userErrors {
+            field
+            message
+          }
+        }
+      }
+    `;
+    
+    const addItemVariables = {
+      id: calculatedOrderId,
+      variantId: `gid://shopify/ProductVariant/${variantInfo.variant_id}`,
+      quantity: 1
+    };
+    
+    const addItemOptions = {
+      method: 'POST',
+      headers: {
+        'X-Shopify-Access-Token': ACCESS_TOKEN,
+        'Content-Type': 'application/json'
+      },
+      payload: JSON.stringify({
+        query: addItemMutation,
+        variables: addItemVariables
+      }),
+      muteHttpExceptions: true
+    };
+    
+    const addItemResp = UrlFetchApp.fetch(graphqlUrl, addItemOptions);
+    const addItemResult = JSON.parse(addItemResp.getContentText());
+    
+    if (addItemResult.errors || addItemResult.data.orderEditAddVariant.userErrors.length > 0) {
+      const errors = addItemResult.errors || addItemResult.data.orderEditAddVariant.userErrors;
+      return { success: false, error: `Failed to add line item: ${JSON.stringify(errors)}` };
+    }
+    
+    // Step 3: Commit the edit
+    const commitMutation = `
+      mutation orderEditCommit($id: ID!, $notifyCustomer: Boolean, $staffNote: String) {
+        orderEditCommit(id: $id, notifyCustomer: $notifyCustomer, staffNote: $staffNote) {
+          order {
+            id
+          }
+          userErrors {
+            field
+            message
+          }
+        }
+      }
+    `;
+    
+    const commitVariables = {
+      id: calculatedOrderId,
+      notifyCustomer: false,
+      staffNote: `Golden card ${goldenCard} added automatically based on birth information`
+    };
+    
+    const commitOptions = {
+      method: 'POST',
+      headers: {
+        'X-Shopify-Access-Token': ACCESS_TOKEN,
+        'Content-Type': 'application/json'
+      },
+      payload: JSON.stringify({
+        query: commitMutation,
+        variables: commitVariables
+      }),
+      muteHttpExceptions: true
+    };
+    
+    const commitResp = UrlFetchApp.fetch(graphqlUrl, commitOptions);
+    const commitResult = JSON.parse(commitResp.getContentText());
+    
+    if (commitResult.errors || commitResult.data.orderEditCommit.userErrors.length > 0) {
+      const errors = commitResult.errors || commitResult.data.orderEditCommit.userErrors;
+      return { success: false, error: `Failed to commit order edit: ${JSON.stringify(errors)}` };
+    }
+    
+    return { 
+      success: true, 
+      orderId: numericOrderId,
+      orderName: order.name,
+      response: `Order ${order.name} updated with golden card: ${goldenCard}` 
+    };
     
   } catch (e) {
     return { success: false, error: e.toString() };
   }
 }
 
-// Main function to handle golden card processing
-function handleGoldenCardForCustomer(email, goldenCard, relatedOrderId = null) {
+// ===== MAIN HANDLER FUNCTION =====
+function handleGoldenCardForCustomer(email, goldenCard, providedOrderId = null) {
   try {
     // Step 1: Get customer info
     const customerResult = getCustomerByEmail(email);
@@ -494,27 +645,70 @@ function handleGoldenCardForCustomer(email, goldenCard, relatedOrderId = null) {
     if (customerUpdateResult.success) {
       results.push("Customer profile updated");
     } else {
-      results.push("Customer update failed: " + customerUpdateResult.error);
+      results.push("Customer update warning: " + customerUpdateResult.error);
     }
     
-    // Step 3: Create draft order
-    const draftOrderResult = createDraftOrderWithGoldenCard(customerId, goldenCard, relatedOrderId);
-    if (draftOrderResult.success) {
-      results.push(`Draft order created: ${draftOrderResult.draftOrderName}`);
+    // Step 3: Get order ID
+    let orderId = providedOrderId;
+    let orderName = providedOrderId ? providedOrderId : null;
+    
+    if (!orderId) {
+      const latestOrder = getLatestOrderByEmail(email);
+      if (latestOrder) {
+        orderId = latestOrder.id;
+        orderName = latestOrder.name;
+      }
+    } else {
+      // If providedOrderId looks like a name (contains letters or #), convert it
+      if (isNaN(providedOrderId) || providedOrderId.toString().match(/[A-Za-z#]/)) {
+        const numericId = getOrderIdFromName(providedOrderId);
+        if (numericId) {
+          orderId = numericId;
+          orderName = providedOrderId;
+        } else {
+          return {
+            success: false,
+            customerId: customerId,
+            response: results.join(" | ") + ` | Order ${providedOrderId} not found`,
+            error: `Order ${providedOrderId} not found`
+          };
+        }
+      }
+    }
+    
+    if (!orderId) {
+      return {
+        success: false,
+        customerId: customerId,
+        response: results.join(" | ") + " | No order found to update",
+        error: "No order ID available"
+      };
+    }
+    
+    // Step 4: Add golden card to order
+    const orderUpdateResult = addGoldenCardToOrder(orderId, goldenCard);
+    
+    if (orderUpdateResult.success) {
+      if (orderUpdateResult.skipped) {
+        results.push(orderUpdateResult.response);
+      } else {
+        results.push(`Order ${orderUpdateResult.orderName} updated with ${goldenCard}`);
+      }
       return {
         success: true,
         customerId: customerId,
-        draftOrderId: draftOrderResult.draftOrderId,
-        draftOrderName: draftOrderResult.draftOrderName,
+        orderId: orderId,
+        orderName: orderUpdateResult.orderName || orderName,
         response: results.join(" | ")
       };
     } else {
-      results.push("Draft order failed: " + draftOrderResult.error);
+      results.push("Order update failed: " + orderUpdateResult.error);
       return {
-        success: customerUpdateResult.success, // At least customer was updated
+        success: false,
         customerId: customerId,
+        orderId: orderId,
         response: results.join(" | "),
-        warning: "Draft order creation failed"
+        error: orderUpdateResult.error
       };
     }
     
@@ -523,29 +717,30 @@ function handleGoldenCardForCustomer(email, goldenCard, relatedOrderId = null) {
   }
 }
 
+// ===== GOOGLE FORM SUBMIT HANDLER =====
 function onFormSubmit(e) {
   try {
-    // ✅ Get or create "Sheet1"
+    // Get or create "Sheet1"
     const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Sheet1") 
       || SpreadsheetApp.getActiveSpreadsheet().insertSheet("Sheet1");
 
-    // ✅ Add headers if first row is empty
+    // Add headers if first row is empty
     if (sheet.getLastRow() === 0) {
       sheet.appendRow([
-        "Name","Email","Birthday","BirthHour","Shopify ID",
-        "Golden Card","Status","Shopify Update","Draft Order","Timestamp"
+        "Name","Email","Birthday","BirthHour","Shopify Order ID",
+        "Golden Card","Status","Shopify Update","Order Info","Timestamp"
       ]);
     }
 
-    // ✅ Read form input
+    // Read form input
     const row = e.values;
     const name = row[1] || "";
     const email = row[2] || "";
     const birthday = row[3] || "";
     const birthHour = row[4] || "";
-    let shopifyId = row[5] || ""; // can be blank if not provided
+    let shopifyId = row[5] || "";
 
-    // ✅ Calculate golden card
+    // Calculate golden card
     let goldenCard = null;
     let status = "";
     try {
@@ -557,36 +752,29 @@ function onFormSubmit(e) {
       status = "Error: " + calcError.message;
     }
 
-    // ✅ Try to fetch Shopify Order ID if missing
+    // Try to fetch latest order if not provided
     if (!shopifyId && email) {
-      const latestOrderId = getLatestOrderIdByEmail(email);
-      if (latestOrderId) {
-        shopifyId = "#" + latestOrderId; // format like Shopify UI
+      const latestOrder = getLatestOrderByEmail(email);
+      if (latestOrder) {
+        shopifyId = latestOrder.name; // e.g., "#1234" or "M44943"
       }
     }
 
-    // ✅ Initialize status variables
+    // Initialize status variables
     let shopifyUpdateStatus = "Not attempted";
-    let draftOrderInfo = "Not created";
+    let orderInfo = "Not updated";
 
-    // ✅ Process golden card if available
+    // Process golden card if available
     if (goldenCard && email) {
-      // Extract numeric order ID for reference
-      const orderIdMatch = shopifyId.match(/\d+/);
-      const numericOrderId = orderIdMatch ? orderIdMatch[0] : null;
-      
-      const result = handleGoldenCardForCustomer(email, goldenCard, numericOrderId);
+      // Pass the order name/ID as-is - handleGoldenCardForCustomer will convert it
+      const result = handleGoldenCardForCustomer(email, goldenCard, shopifyId);
       
       if (result.success) {
         shopifyUpdateStatus = "SUCCESS: " + result.response;
-        if (result.draftOrderName) {
-          draftOrderInfo = result.draftOrderName;
-        }
-        if (result.warning) {
-          shopifyUpdateStatus += " (Warning: " + result.warning + ")";
-        }
+        orderInfo = result.orderName || shopifyId;
       } else {
-        shopifyUpdateStatus = "FAILED: " + result.error;
+        shopifyUpdateStatus = "FAILED: " + (result.error || result.response);
+        orderInfo = result.orderName || shopifyId || "No order";
       }
     } else if (goldenCard && !email) {
       shopifyUpdateStatus = "No email provided - cannot update Shopify";
@@ -594,7 +782,7 @@ function onFormSubmit(e) {
       shopifyUpdateStatus = "No golden card calculated - Shopify update skipped";
     }
 
-    // ✅ Save results into Google Sheet
+    // Save results to Google Sheet
     sheet.appendRow([
       name, 
       email, 
@@ -604,12 +792,12 @@ function onFormSubmit(e) {
       goldenCard, 
       status, 
       shopifyUpdateStatus, 
-      draftOrderInfo,
+      orderInfo,
       new Date()
     ]);
 
   } catch (e) {
-    // ✅ Critical system-level error logging
+    // Critical error logging
     try {
       const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Sheet1");
       if (sheet) {
