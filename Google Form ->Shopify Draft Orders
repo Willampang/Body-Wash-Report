@@ -1,4 +1,3 @@
-// ===== QiMen DunJia Calculator (unchanged) =====
 class QiMenDunJiaCalculator {
   constructor() {
     this.tianGan = ['甲','乙','丙','丁','戊','己','庚','辛','壬','癸'];
@@ -266,7 +265,6 @@ function calculateQimenForBirthday(birthday, birthHour) {
   }
 }
 
-// ===== SHOPIFY CONFIGURATION =====
 const SHOPIFY_STORE = 'fsr2021.myshopify.com';
 const ACCESS_TOKEN = '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';
 const API_VERSION = '2024-01';
@@ -317,64 +315,6 @@ function getCustomerByEmail(email) {
   }
 }
 
-function addGoldenCardToCustomer(email, goldenCard) {
-  try {
-    const customerResult = getCustomerByEmail(email);
-    if (!customerResult.success) {
-      return customerResult;
-    }
-    
-    const customer = customerResult.customer;
-    const customerId = customer.id;
-    
-    const updateUrl = `https://${SHOPIFY_STORE}/admin/api/${API_VERSION}/customers/${customerId}.json`;
-    
-    const existingTags = customer.tags || '';
-    const goldenCardTag = `golden-card-${goldenCard}`;
-    const newTags = existingTags ? `${existingTags},${goldenCardTag}` : goldenCardTag;
-    
-    const updateData = {
-      customer: {
-        id: customerId,
-        tags: newTags,
-        note: customer.note ? 
-          `${customer.note}\n\nGolden Card: ${goldenCard} (Auto-calculated)` : 
-          `Golden Card: ${goldenCard} (Auto-calculated)`
-      }
-    };
-    
-    const updateOptions = {
-      method: 'PUT',
-      headers: {
-        'X-Shopify-Access-Token': ACCESS_TOKEN,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
-      payload: JSON.stringify(updateData)
-    };
-    
-    const updateResp = UrlFetchApp.fetch(updateUrl, updateOptions);
-    const updateResponseCode = updateResp.getResponseCode();
-    const updateResponseText = updateResp.getContentText();
-    
-    if (updateResponseCode === 200) {
-      return { 
-        success: true, 
-        customerId: customerId,
-        response: `Customer profile updated with golden card: ${goldenCard}` 
-      };
-    } else {
-      return { 
-        success: false, 
-        error: `Customer update failed: HTTP ${updateResponseCode} - ${updateResponseText}` 
-      };
-    }
-    
-  } catch (e) {
-    return { success: false, error: e.toString() };
-  }
-}
-
 function getLatestOrderByEmail(email) {
   try {
     const customerResult = getCustomerByEmail(email);
@@ -409,10 +349,8 @@ function getLatestOrderByEmail(email) {
   }
 }
 
-// ===== NEW FUNCTION: GET ORDER ID FROM ORDER NAME =====
 function getOrderIdFromName(orderName) {
   try {
-    // Remove # if present and get just the order name
     const cleanName = orderName.replace('#', '').trim();
     
     const searchUrl = `https://${SHOPIFY_STORE}/admin/api/${API_VERSION}/orders.json?name=${encodeURIComponent(cleanName)}&status=any&limit=1`;
@@ -438,7 +376,6 @@ function getOrderIdFromName(orderName) {
   }
 }
 
-// ===== NEW FUNCTION: ADD GOLDEN CARD TO EXISTING ORDER =====
 function addGoldenCardToOrder(orderId, goldenCard) {
   const variantInfo = GOLDEN_CARD_VARIANTS[goldenCard];
   if (!variantInfo) {
@@ -446,7 +383,6 @@ function addGoldenCardToOrder(orderId, goldenCard) {
   }
   
   try {
-    // Convert order name to order ID if needed
     let numericOrderId = orderId;
     if (isNaN(orderId) || orderId.toString().match(/[A-Za-z]/)) {
       numericOrderId = getOrderIdFromName(orderId);
@@ -455,7 +391,6 @@ function addGoldenCardToOrder(orderId, goldenCard) {
       }
     }
     
-    // First, get the order details to check if it's editable
     const getOrderUrl = `https://${SHOPIFY_STORE}/admin/api/${API_VERSION}/orders/${numericOrderId}.json`;
     const getOptions = {
       method: 'GET',
@@ -474,7 +409,6 @@ function addGoldenCardToOrder(orderId, goldenCard) {
     
     const order = JSON.parse(getResp.getContentText()).order;
     
-    // Check if order already has this golden card item
     const existingGoldenCard = order.line_items.find(item => 
       item.variant_id === parseInt(variantInfo.variant_id)
     );
@@ -487,10 +421,8 @@ function addGoldenCardToOrder(orderId, goldenCard) {
       };
     }
     
-    // Use GraphQL Admin API for order editing (more reliable)
     const graphqlUrl = `https://${SHOPIFY_STORE}/admin/api/${API_VERSION}/graphql.json`;
     
-    // Step 1: Begin order edit
     const beginEditMutation = `
       mutation orderEditBegin($id: ID!) {
         orderEditBegin(id: $id) {
@@ -532,7 +464,6 @@ function addGoldenCardToOrder(orderId, goldenCard) {
     
     const calculatedOrderId = beginResult.data.orderEditBegin.calculatedOrder.id;
     
-    // Step 2: Add line item
     const addItemMutation = `
       mutation orderEditAddVariant($id: ID!, $variantId: ID!, $quantity: Int!) {
         orderEditAddVariant(id: $id, variantId: $variantId, quantity: $quantity) {
@@ -574,7 +505,6 @@ function addGoldenCardToOrder(orderId, goldenCard) {
       return { success: false, error: `Failed to add line item: ${JSON.stringify(errors)}` };
     }
     
-    // Step 3: Commit the edit
     const commitMutation = `
       mutation orderEditCommit($id: ID!, $notifyCustomer: Boolean, $staffNote: String) {
         orderEditCommit(id: $id, notifyCustomer: $notifyCustomer, staffNote: $staffNote) {
@@ -628,10 +558,8 @@ function addGoldenCardToOrder(orderId, goldenCard) {
   }
 }
 
-// ===== MAIN HANDLER FUNCTION =====
 function handleGoldenCardForCustomer(email, goldenCard, providedOrderId = null) {
   try {
-    // Step 1: Get customer info
     const customerResult = getCustomerByEmail(email);
     if (!customerResult.success) {
       return { success: false, error: customerResult.error };
@@ -640,15 +568,8 @@ function handleGoldenCardForCustomer(email, goldenCard, providedOrderId = null) 
     const customerId = customerResult.customer.id;
     const results = [];
     
-    // Step 2: Update customer profile
-    const customerUpdateResult = addGoldenCardToCustomer(email, goldenCard);
-    if (customerUpdateResult.success) {
-      results.push("Customer profile updated");
-    } else {
-      results.push("Customer update warning: " + customerUpdateResult.error);
-    }
+    // Customer profile update removed - skip directly to order update
     
-    // Step 3: Get order ID
     let orderId = providedOrderId;
     let orderName = providedOrderId ? providedOrderId : null;
     
@@ -659,7 +580,6 @@ function handleGoldenCardForCustomer(email, goldenCard, providedOrderId = null) 
         orderName = latestOrder.name;
       }
     } else {
-      // If providedOrderId looks like a name (contains letters or #), convert it
       if (isNaN(providedOrderId) || providedOrderId.toString().match(/[A-Za-z#]/)) {
         const numericId = getOrderIdFromName(providedOrderId);
         if (numericId) {
@@ -669,7 +589,7 @@ function handleGoldenCardForCustomer(email, goldenCard, providedOrderId = null) 
           return {
             success: false,
             customerId: customerId,
-            response: results.join(" | ") + ` | Order ${providedOrderId} not found`,
+            response: `Order ${providedOrderId} not found`,
             error: `Order ${providedOrderId} not found`
           };
         }
@@ -680,12 +600,11 @@ function handleGoldenCardForCustomer(email, goldenCard, providedOrderId = null) 
       return {
         success: false,
         customerId: customerId,
-        response: results.join(" | ") + " | No order found to update",
+        response: "No order found to update",
         error: "No order ID available"
       };
     }
     
-    // Step 4: Add golden card to order
     const orderUpdateResult = addGoldenCardToOrder(orderId, goldenCard);
     
     if (orderUpdateResult.success) {
@@ -717,14 +636,11 @@ function handleGoldenCardForCustomer(email, goldenCard, providedOrderId = null) 
   }
 }
 
-// ===== GOOGLE FORM SUBMIT HANDLER =====
 function onFormSubmit(e) {
   try {
-    // Get or create "Sheet1"
     const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Sheet1") 
       || SpreadsheetApp.getActiveSpreadsheet().insertSheet("Sheet1");
 
-    // Add headers if first row is empty
     if (sheet.getLastRow() === 0) {
       sheet.appendRow([
         "Name","Email","Birthday","BirthHour","Shopify Order ID",
@@ -732,7 +648,6 @@ function onFormSubmit(e) {
       ]);
     }
 
-    // Read form input
     const row = e.values;
     const name = row[1] || "";
     const email = row[2] || "";
@@ -740,7 +655,6 @@ function onFormSubmit(e) {
     const birthHour = row[4] || "";
     let shopifyId = row[5] || "";
 
-    // Calculate golden card
     let goldenCard = null;
     let status = "";
     try {
@@ -752,21 +666,17 @@ function onFormSubmit(e) {
       status = "Error: " + calcError.message;
     }
 
-    // Try to fetch latest order if not provided
     if (!shopifyId && email) {
       const latestOrder = getLatestOrderByEmail(email);
       if (latestOrder) {
-        shopifyId = latestOrder.name; // e.g., "#1234" or "M44943"
+        shopifyId = latestOrder.name;
       }
     }
 
-    // Initialize status variables
     let shopifyUpdateStatus = "Not attempted";
     let orderInfo = "Not updated";
 
-    // Process golden card if available
     if (goldenCard && email) {
-      // Pass the order name/ID as-is - handleGoldenCardForCustomer will convert it
       const result = handleGoldenCardForCustomer(email, goldenCard, shopifyId);
       
       if (result.success) {
@@ -782,7 +692,6 @@ function onFormSubmit(e) {
       shopifyUpdateStatus = "No golden card calculated - Shopify update skipped";
     }
 
-    // Save results to Google Sheet
     sheet.appendRow([
       name, 
       email, 
@@ -797,7 +706,6 @@ function onFormSubmit(e) {
     ]);
 
   } catch (e) {
-    // Critical error logging
     try {
       const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Sheet1");
       if (sheet) {
