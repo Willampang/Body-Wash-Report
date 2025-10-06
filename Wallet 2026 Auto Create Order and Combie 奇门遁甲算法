@@ -111,138 +111,99 @@ class QiMenDunJiaCalculator {
   }
 }
 
-// Enhanced flexible birthday parser
 function parseFlexibleBirthday(birthdayInput) {
   if (!birthdayInput) return null;
   
   try {
-    // If it's already a Date object, return it
     if (birthdayInput instanceof Date && !isNaN(birthdayInput.getTime())) {
       return birthdayInput;
     }
     
-    // Convert to string and clean up
     let dateStr = String(birthdayInput).trim();
-    
-    // Remove ordinal suffixes (1st, 2nd, 3rd, 4th, etc.)
     dateStr = dateStr.replace(/(\d+)(st|nd|rd|th)/gi, '$1');
-    
-    // Remove extra spaces and normalize separators
     dateStr = dateStr.replace(/\s+/g, ' ').trim();
     
-    // Array of date formats to try
-    const formats = [
-      // ISO formats
-      /^(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})$/, // yyyy-mm-dd, yyyy/mm/dd, yyyy.mm.dd
-      /^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})$/, // dd-mm-yyyy, dd/mm/yyyy, dd.mm.yyyy, mm-dd-yyyy, mm/dd/yyyy, mm.dd.yyyy
-      /^(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})$/, // yyyy-dd-mm, yyyy/dd/mm, yyyy.dd.mm (duplicate but kept for clarity)
-      
-      // Month name formats
-      /^([A-Za-z]{3,9})\s+(\d{1,2})[,\s]*(\d{4})$/, // "January 15 2024", "Jan 15, 2024"
-      /^(\d{1,2})\s+([A-Za-z]{3,9})[,\s]*(\d{4})$/, // "15 January 2024", "15 Jan, 2024"
-      /^(\d{4})\s+([A-Za-z]{3,9})\s+(\d{1,2})$/, // "2024 January 15"
-      
-      // Compact formats
-      /^(\d{8})$/, // 20240115 (YYYYMMDD)
-      /^(\d{2})(\d{2})(\d{4})$/, // 15012024 (DDMMYYYY)
-      /^(\d{4})(\d{2})(\d{2})$/, // 20240115 (YYYYMMDD)
-    ];
-    
-    let parsedDate = null;
-    
-    // Try standard JavaScript Date parsing first
-    parsedDate = new Date(dateStr);
+    let parsedDate = new Date(dateStr);
     if (!isNaN(parsedDate.getTime()) && parsedDate.getFullYear() > 1900 && parsedDate.getFullYear() < 2100) {
       return parsedDate;
     }
     
-    // Try different formats
+    const formats = [
+      /^(\d{4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})$/,
+      /^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})$/,
+      /^([A-Za-z]{3,9})\s+(\d{1,2})[,\s]*(\d{4})$/,
+      /^(\d{1,2})\s+([A-Za-z]{3,9})[,\s]*(\d{4})$/,
+      /^(\d{4})\s+([A-Za-z]{3,9})\s+(\d{1,2})$/,
+      /^(\d{8})$/,
+      /^(\d{2})(\d{2})(\d{4})$/
+    ];
+    
     for (let i = 0; i < formats.length; i++) {
       const match = dateStr.match(formats[i]);
       if (match) {
         let year, month, day;
         
         switch (i) {
-          case 0: // yyyy-mm-dd format
+          case 0:
             year = parseInt(match[1]);
             month = parseInt(match[2]);
             day = parseInt(match[3]);
             break;
             
-          case 1: // dd-mm-yyyy or mm-dd-yyyy format
-            // Try to determine if it's DD-MM-YYYY or MM-DD-YYYY
+          case 1:
             const first = parseInt(match[1]);
             const second = parseInt(match[2]);
             year = parseInt(match[3]);
             
-            // If first number > 12, it must be day (DD-MM-YYYY)
             if (first > 12) {
               day = first;
               month = second;
-            }
-            // If second number > 12, it must be day (MM-DD-YYYY)
-            else if (second > 12) {
+            } else if (second > 12) {
               month = first;
               day = second;
-            }
-            // Both <= 12, assume DD-MM-YYYY (common international format)
-            else {
+            } else {
               day = first;
               month = second;
             }
             break;
             
-          case 2: // yyyy-dd-mm format (less common but possible)
-            year = parseInt(match[1]);
-            day = parseInt(match[2]);
-            month = parseInt(match[3]);
-            break;
-            
-          case 3: // Month name first: "January 15 2024"
+          case 2:
             month = getMonthNumber(match[1]);
             day = parseInt(match[2]);
             year = parseInt(match[3]);
             break;
             
-          case 4: // Day first: "15 January 2024"
+          case 3:
             day = parseInt(match[1]);
             month = getMonthNumber(match[2]);
             year = parseInt(match[3]);
             break;
             
-          case 5: // Year first: "2024 January 15"
+          case 4:
             year = parseInt(match[1]);
             month = getMonthNumber(match[2]);
             day = parseInt(match[3]);
             break;
             
-          case 6: // YYYYMMDD (8 digits)
+          case 5:
             const dateNum = match[1];
             year = parseInt(dateNum.substring(0, 4));
             month = parseInt(dateNum.substring(4, 6));
             day = parseInt(dateNum.substring(6, 8));
             break;
             
-          case 7: // DDMMYYYY
+          case 6:
             day = parseInt(match[1]);
             month = parseInt(match[2]);
             year = parseInt(match[3]);
             break;
-            
-          case 8: // YYYYMMDD (alternative)
-            year = parseInt(match[1]);
-            month = parseInt(match[2]);
-            day = parseInt(match[3]);
-            break;
         }
         
-        // Validate date components
         if (year && month && day && 
             year >= 1900 && year <= 2100 && 
             month >= 1 && month <= 12 && 
             day >= 1 && day <= 31) {
           
-          // Create date and validate it's real (handles leap years, days per month)
           parsedDate = new Date(year, month - 1, day);
           if (parsedDate.getFullYear() === year && 
               parsedDate.getMonth() === (month - 1) && 
@@ -251,24 +212,21 @@ function parseFlexibleBirthday(birthdayInput) {
           }
         }
       }
-    }    
-    // Handle formats like "2024-1-5" or "5-1-2024"
+    }
+    
     const parts = dateStr.split(/[\/\-\.\s,]+/).filter(p => p && p.match(/\d/));
     if (parts.length >= 3) {
       const nums = parts.map(p => parseInt(p)).filter(n => !isNaN(n));
       if (nums.length >= 3) {
-        // Try different arrangements
         const arrangements = [
-          [nums[0], nums[1], nums[2]], // as given
-          [nums[2], nums[1], nums[0]], // reverse
-          [nums[1], nums[0], nums[2]], // swap first two
+          [nums[0], nums[1], nums[2]],
+          [nums[2], nums[1], nums[0]],
+          [nums[1], nums[0], nums[2]]
         ];
         
         for (let arr of arrangements) {
-          // Determine year, month, day
           let year, month, day;
           
-          // Find the year (4 digits or > 31)
           if (arr[0] > 31 || arr[0].toString().length === 4) {
             year = arr[0];
             month = arr[1];
@@ -283,7 +241,6 @@ function parseFlexibleBirthday(birthdayInput) {
             day = arr[2];
           }
           
-          // Handle 2-digit years
           if (year && year < 100) {
             year += (year < 50) ? 2000 : 1900;
           }
@@ -329,16 +286,12 @@ function getMonthNumber(monthStr) {
   return months[monthStr.toLowerCase()] || parseInt(monthStr);
 }
 
-// Updated formatBirthday function
 function formatBirthday(birthday) {
   if (!birthday) return "";
   
   try {
     const date = parseFlexibleBirthday(birthday);
-    
-    if (!date) {
-      return String(birthday);
-    }
+    if (!date) return String(birthday);
     
     var options = { year: 'numeric', month: 'long', day: 'numeric' };
     return date.toLocaleDateString('en-US', options);
@@ -347,36 +300,23 @@ function formatBirthday(birthday) {
   }
 }
 
-// Updated calculateQimenForBirthday function
 function calculateQimenForBirthday(birthday, birthHour) {
-  if (!birthday) {
-    return null;
-  }
+  if (!birthday) return null;
   
   try {
-    // Use the flexible birthday parser
     const date = parseFlexibleBirthday(birthday);
-    
-    if (!date) {
-      return null;
-    }
+    if (!date) return null;
     
     const calculator = new QiMenDunJiaCalculator();
     const year = date.getFullYear();
     const month = date.getMonth() + 1;
     const day = date.getDate();
     
-    // Use birth hour from spreadsheet if provided, otherwise default calculation
     var hour, minute;
     if (birthHour && birthHour !== "") {
-      // Parse birth hour - could be in format like "14", "14:30", "2pm", etc.
       var hourStr = String(birthHour).trim();
-      
-      // Handle AM/PM format
       let isPM = /pm|p\.m\.|下午/i.test(hourStr);
       let isAM = /am|a\.m\.|上午/i.test(hourStr);
-      
-      // Clean the hour string
       hourStr = hourStr.replace(/[apm\.上下午\s]/gi, '');
       
       if (hourStr.includes(':')) {
@@ -388,25 +328,17 @@ function calculateQimenForBirthday(birthday, birthHour) {
         minute = 0;
       }
       
-      // Convert 12-hour to 24-hour format
-      if (isPM && hour < 12) {
-        hour += 12;
-      } else if (isAM && hour === 12) {
-        hour = 0;
-      }
+      if (isPM && hour < 12) hour += 12;
+      else if (isAM && hour === 12) hour = 0;
       
-      // Ensure hour is within valid range
       hour = Math.max(0, Math.min(23, hour));
       minute = Math.max(0, Math.min(59, minute));
-      
     } else {
-      // Fallback to original calculation if no birth hour provided
       hour = (8 + (day % 8)) % 24;
       minute = ((day * 11) + (month * 7)) % 60;
     }
     
     const result = calculator.calculateQiMen(year, month, day, hour, minute);
-    
     return result.goldCard;
   } catch (e) {
     return null;
@@ -440,31 +372,31 @@ function onNewRow(e) {
   var postalCode = "";
   var phone = "";
   var customerBirthday = null;
-  var birthHour = ""; // Birth hour
+  var birthHour = "";
   var qty丰盛款 = 0;
   var qty富豪款 = 0;
   var qty吸金款 = 0;
-  var qty聚财款 = 0; // New product
-  var qty带财款 = 0; // Add 带财款
+  var qty聚财款 = 0;
+  var qty带财款 = 0;
   
   try {
-    name = sheet.getRange(row, 1).getValue();           // Col A: Name
-    email = sheet.getRange(row, 2).getValue();          // Col B: Email  
-    streetAddress = sheet.getRange(row, 3).getValue();  // Col C: Street Address
-    city = sheet.getRange(row, 4).getValue();           // Col D: City
-    state = sheet.getRange(row, 5).getValue();          // Col E: State
-    country = sheet.getRange(row, 6).getValue();        // Col F: Country
-    postalCode = sheet.getRange(row, 7).getValue();     // Col G: Postal Code
-    phone = sheet.getRange(row, 8).getValue();          // Col H: Phone
-    customerBirthday = sheet.getRange(row, 9).getValue(); // Col I: Customer Birthday
-    birthHour = sheet.getRange(row, 10).getValue();     // Col J: 出生时辰 (Birth Hour)
-    qty丰盛款 = sheet.getRange(row, 11).getValue();      // Col K: 丰盛款
-    qty富豪款 = sheet.getRange(row, 12).getValue();      // Col L: 富豪款
-    qty吸金款 = sheet.getRange(row, 13).getValue();      // Col M: 吸金款
-    qty带财款 = sheet.getRange(row, 14).getValue();      // Col O: 带财款
-    qty聚财款 = sheet.getRange(row, 15).getValue();      // Col N: 聚财款
+    name = sheet.getRange(row, 1).getValue();
+    email = sheet.getRange(row, 2).getValue();
+    streetAddress = sheet.getRange(row, 3).getValue();
+    city = sheet.getRange(row, 4).getValue();
+    state = sheet.getRange(row, 5).getValue();
+    country = sheet.getRange(row, 6).getValue();
+    postalCode = sheet.getRange(row, 7).getValue();
+    phone = sheet.getRange(row, 8).getValue();
+    customerBirthday = sheet.getRange(row, 9).getValue();
+    birthHour = sheet.getRange(row, 10).getValue();
+    qty丰盛款 = sheet.getRange(row, 11).getValue();
+    qty富豪款 = sheet.getRange(row, 12).getValue();
+    qty吸金款 = sheet.getRange(row, 13).getValue();
+    qty带财款 = sheet.getRange(row, 14).getValue();
+    qty聚财款 = sheet.getRange(row, 15).getValue();
   } catch (error) {
-    sheet.getRange(row, 16).setValue("Read Error: " + error.message); // Result column P
+    sheet.getRange(row, 16).setValue("Read Error: " + error.message);
     return;
   }
   
@@ -499,11 +431,10 @@ function onNewRow(e) {
     return;
   }
 
-  var store = "ns6gks-k1.myshopify.com";   
-  var token = "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";
+  var store = "z14sj1-i5.myshopify.com";
+  var token = "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";
 
   var customerId = null;
-  var existingCustomer = null;
   if (email) {
     var searchUrl = "https://" + store + "/admin/api/2025-01/customers/search.json?query=email:" + encodeURIComponent(email);
     var searchOptions = {
@@ -514,102 +445,53 @@ function onNewRow(e) {
     var searchResponse = UrlFetchApp.fetch(searchUrl, searchOptions);
     var searchData = JSON.parse(searchResponse.getContentText());
     if (searchData.customers && searchData.customers.length > 0) {
-      existingCustomer = searchData.customers[0];
-      customerId = existingCustomer.id;
+      customerId = searchData.customers[0].id;
     }
   }
 
-  var lineItems = []; 
+  var lineItems = [];
   
   var products = {
-    "丰盛款": { variant_id: 51126212001924, price: "496.00", title: "丰盛款" },
-    "富豪款": { variant_id: 51126213738628, price: "397.00", title: "富豪款" },
-    "吸金款": { variant_id: 51126213771396, price: "196.00", title: "吸金款" },
-    "聚财款": { variant_id: 51126213836932, price: "496.00", title: "聚财款" }, // NEW PRODUCT
-    "带财款": { variant_id: 51126213869700, price: "296.00", title: "带财款" },
-    "天圆地方铜钱": { variant_id: 51126213902468, price: "0.00", title: "天圆地方铜钱" },
-    "乾宫": { variant_id: 51126213968004, price: "0.00", title: "乾宫" },
-    "坎宫": { variant_id: 51126214033540, price: "0.00", title: "坎宫" },
-    "艮宫": { variant_id: 51126214099076, price: "0.00", title: "艮宫" },
-    "震宫": { variant_id: 51126214131844, price: "0.00", title: "震宫" },
-    "巽宫": { variant_id: 51126214164612, price: "0.00", title: "巽宫" },
-    "离宫": { variant_id: 51126214197380, price: "0.00", title: "离宫" },
-    "坤宫": { variant_id: 51126214262916, price: "0.00", title: "坤宫" },
-    "兑宫": { variant_id: 51126217670788, price: "0.00", title: "兑宫" }
+    "丰盛款": { variant_id: 46719018434726, price: 496.00 },
+    "富豪款": { variant_id: 46719018369190, price: 397.00 },
+    "吸金款": { variant_id: 46719018270886, price: 196.00 },
+    "聚财款": { variant_id: 46719018172582, price: 496.00 },
+    "带财款": { variant_id: 46719018074278, price: 296.00 },
+    "天圆地方铜钱": { variant_id: 46719018008742, price: 0.00 },
+    "乾宫": { variant_id: 46719017943206, price: 0.00 },
+    "坎宫": { variant_id: 46719017844902, price: 0.00 },
+    "艮宫": { variant_id: 46719017779366, price: 0.00 },
+    "震宫": { variant_id: 46719017681062, price: 0.00 },
+    "巽宫": { variant_id: 46719017615526, price: 0.00 },
+    "离宫": { variant_id: 46719017517222, price: 0.00 },
+    "坤宫": { variant_id: 46719017451686, price: 0.00 },
+    "兑宫": { variant_id: 46719017353382, price: 0.00 }
   };
   
-  if (qty丰盛款 > 0) {
-    lineItems.push({
-      "variant_id": products["丰盛款"].variant_id,
-      "quantity": qty丰盛款
-    });
-  }
-  
-  if (qty富豪款 > 0) {
-    lineItems.push({
-      "variant_id": products["富豪款"].variant_id,
-      "quantity": qty富豪款
-    });
-  }
-  
-  if (qty吸金款 > 0) {
-    lineItems.push({
-      "variant_id": products["吸金款"].variant_id,
-      "quantity": qty吸金款
-    });
-  }
+  if (qty丰盛款 > 0) lineItems.push({ "variant_id": products["丰盛款"].variant_id, "quantity": qty丰盛款 });
+  if (qty富豪款 > 0) lineItems.push({ "variant_id": products["富豪款"].variant_id, "quantity": qty富豪款 });
+  if (qty吸金款 > 0) lineItems.push({ "variant_id": products["吸金款"].variant_id, "quantity": qty吸金款 });
+  if (qty聚财款 > 0) lineItems.push({ "variant_id": products["聚财款"].variant_id, "quantity": qty聚财款 });
+  if (qty带财款 > 0) lineItems.push({ "variant_id": products["带财款"].variant_id, "quantity": qty带财款 });
 
-  if (qty聚财款 > 0) {
-    lineItems.push({
-      "variant_id": products["聚财款"].variant_id,
-      "quantity": qty聚财款
-    });
-  }
-
-  if (qty带财款 > 0) {
-    lineItems.push({
-      "variant_id": products["带财款"].variant_id,
-      "quantity": qty带财款
-    });
-  }
-
-  // Calculate total order value (including 聚财款 and 带财款)
   var totalOrderValue = (qty丰盛款 * 496) + (qty富豪款 * 397) + (qty吸金款 * 196) + (qty聚财款 * 496) + (qty带财款 * 296);
   
-  // Add bonus items based on order value - EXCLUSIVE TIERS
   var copperCoinsQuantity = 0;
   
-  // Check tiers from highest to lowest (exclusive)
   if (totalOrderValue >= 2000) {
-    // 2000+ tier: Only 带财款 + 4 copper coins
-    lineItems.push({
-      "variant_id": products["带财款"].variant_id,
-      "quantity": 1,
-      "price": 0.00
-    });
+    lineItems.push({ "variant_id": products["带财款"].variant_id, "quantity": 1, "price": 0.00 });
     copperCoinsQuantity = 4;
   } else if (totalOrderValue >= 1500) {
-    // 1500-1999 tier: Only 吸金款 + 3 copper coins
-    lineItems.push({
-      "variant_id": products["吸金款"].variant_id,
-      "quantity": 1,
-      "price": 0.00
-    });
+    lineItems.push({ "variant_id": products["吸金款"].variant_id, "quantity": 1, "price": 0.00 });
     copperCoinsQuantity = 3;
   } else if (totalOrderValue >= 800) {
-    // 800-1499 tier: Only 2 copper coins
     copperCoinsQuantity = 2;
   }
   
-  // Add copper coins if any are to be given
   if (copperCoinsQuantity > 0) {
-    lineItems.push({
-      "variant_id": products["天圆地方铜钱"].variant_id,
-      "quantity": copperCoinsQuantity
-    });
+    lineItems.push({ "variant_id": products["天圆地方铜钱"].variant_id, "quantity": copperCoinsQuantity });
   }
 
-  // Calculate and add golden card using birth hour if customer has any product and valid birthday
   var goldenCard = null;
   var totalProducts = qty丰盛款 + qty富豪款 + qty吸金款 + qty聚财款 + qty带财款;
   
@@ -617,10 +499,13 @@ function onNewRow(e) {
     goldenCard = calculateQimenForBirthday(customerBirthday, birthHour);
     
     if (goldenCard && products[goldenCard]) {
-      lineItems.push({
-        "variant_id": products[goldenCard].variant_id,
-        "quantity": 1
+      var alreadyHasGoldenCard = lineItems.some(function(item) {
+        return item.variant_id === products[goldenCard].variant_id;
       });
+      
+      if (!alreadyHasGoldenCard) {
+        lineItems.push({ "variant_id": products[goldenCard].variant_id, "quantity": 1 });
+      }
     }
   }
 
@@ -632,25 +517,14 @@ function onNewRow(e) {
   }
 
   var noteText = "Customer: " + (name || "Name not provided");
+  if (email) noteText += "\nEmail: " + email;
   
-  // Add main email on new line
-  if (email) {
-    noteText += "\nEmail: " + email;
-  }
-  
-  // Add birthday information if available
   if (customerBirthday) {
     var formattedBirthday = formatBirthday(customerBirthday);
-    if (formattedBirthday) {
-      noteText += "\nBirthday: " + formattedBirthday;
-    } else {
-      noteText += "\nBirthday: " + String(customerBirthday);
-    }
+    noteText += "\nBirthday: " + (formattedBirthday || String(customerBirthday));
   }
   
-  if (goldenCard) {
-    noteText += "\nGolden Card: " + goldenCard;
-  }
+  if (goldenCard) noteText += "\nGolden Card: " + goldenCard;
 
   var payload = {
     "order": {
@@ -660,7 +534,7 @@ function onNewRow(e) {
         "last_name": "",
         "phone": phone || "",
         "address1": streetAddress || "N/A",
-        "city": city || "Kuala Lumpur", 
+        "city": city || "Kuala Lumpur",
         "province": state || "",
         "country": country || "Malaysia",
         "zip": postalCode || ""
@@ -684,12 +558,10 @@ function onNewRow(e) {
     }
   };
 
-  // Add customer data if available
   if (Object.keys(customerData).length > 0) {
     payload.order.customer = customerData;
   }
 
-  // Use orders endpoint
   var url = "https://" + store + "/admin/api/2025-01/orders.json";
   var options = {
     "method": "post",
@@ -705,19 +577,12 @@ function onNewRow(e) {
   var responseCode = response.getResponseCode();
   var data = JSON.parse(response.getContentText());
 
-  // Handle response
   if (responseCode >= 200 && responseCode < 300 && data.order) {
     var resultMsg = "Order Created: " + data.order.id + " (RM" + totalOrderValue + ")";
-    if (goldenCard) {
-      resultMsg += " | Golden Card: " + goldenCard;
-    }
-    if (totalOrderValue >= 2000) {
-      resultMsg += " | +带财款+4 Coins";
-    } else if (totalOrderValue >= 1500) {
-      resultMsg += " | +吸金款+3 Coins";  
-    } else if (totalOrderValue >= 800) {
-      resultMsg += " | +2 Coins";
-    }
+    if (goldenCard) resultMsg += " | Golden Card: " + goldenCard;
+    if (totalOrderValue >= 2000) resultMsg += " | +带财款+4 Coins";
+    else if (totalOrderValue >= 1500) resultMsg += " | +吸金款+3 Coins";
+    else if (totalOrderValue >= 800) resultMsg += " | +2 Coins";
     sheet.getRange(row, 16).setValue(resultMsg);
   } else {
     var errorMsg = "Error (" + responseCode + "): ";
@@ -732,9 +597,7 @@ function onNewRow(e) {
 
 function QIMEN(birthday, hour, minute) {
   const date = parseFlexibleBirthday(birthday);
-  if (!date) {
-    return "Invalid date format";
-  }
+  if (!date) return "Invalid date format";
   
   const year = date.getFullYear();
   const month = date.getMonth() + 1;
@@ -747,9 +610,7 @@ function QIMEN(birthday, hour, minute) {
 
 function QIMEN_ANALYSIS(birthday, hour, minute) {
   const date = parseFlexibleBirthday(birthday);
-  if (!date) {
-    return JSON.stringify({ error: "Invalid date format" });
-  }
+  if (!date) return JSON.stringify({ error: "Invalid date format" });
   
   const year = date.getFullYear();
   const month = date.getMonth() + 1;
