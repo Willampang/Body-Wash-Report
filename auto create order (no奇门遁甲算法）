@@ -1,0 +1,280 @@
+// Auto Create Orders - Simplified Version (No Qimen/Golden Card)
+
+function onNewRow(e) {
+  var spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  if (!spreadsheet) return;
+  
+  var sheet = spreadsheet.getSheetByName("Sheet1");
+  if (!sheet) sheet = spreadsheet.getSheets()[0];
+  if (!sheet) return;
+  
+  var row;
+  if (e && e.range) {
+    row = e.range.getRow();
+  } else {
+    var lastRow = sheet.getLastRow();
+    if (lastRow <= 1) return;
+    row = lastRow;
+  }
+  if (row === 1) return;
+  
+  // Initialize variables
+  var name = "";
+  var email = "";
+  var streetAddress = "";
+  var city = "";
+  var state = "";
+  var country = "";
+  var postalCode = "";
+  var phone = "";
+  var qty丰盛款 = 0;
+  var qty富豪款 = 0;
+  var qty吸金款 = 0;
+  var qty聚财款 = 0;
+  var qty带财款 = 0;
+  
+  try {
+    name = sheet.getRange(row, 1).getValue();           // Col A: Name
+    email = sheet.getRange(row, 2).getValue();          // Col B: Email  
+    streetAddress = sheet.getRange(row, 3).getValue();  // Col C: Street Address
+    city = sheet.getRange(row, 4).getValue();           // Col D: City
+    state = sheet.getRange(row, 5).getValue();          // Col E: State
+    country = sheet.getRange(row, 6).getValue();        // Col F: Country
+    postalCode = sheet.getRange(row, 7).getValue();     // Col G: Postal Code
+    phone = sheet.getRange(row, 8).getValue();          // Col H: Phone
+    qty丰盛款 = sheet.getRange(row, 11).getValue();      // Col K: 丰盛款
+    qty富豪款 = sheet.getRange(row, 12).getValue();      // Col L: 富豪款
+    qty吸金款 = sheet.getRange(row, 13).getValue();      // Col M: 吸金款
+    qty带财款 = sheet.getRange(row, 14).getValue();      // Col N: 带财款
+    qty聚财款 = sheet.getRange(row, 15).getValue();      // Col O: 聚财款
+  } catch (error) {
+    sheet.getRange(row, 16).setValue("Read Error: " + error.message);
+    return;
+  }
+  
+  // Clean and validate input
+  name = name ? String(name).trim() : "";
+  email = email ? String(email).trim() : "";
+  streetAddress = streetAddress ? String(streetAddress).trim() : "";
+  city = city ? String(city).trim() : "";
+  state = state ? String(state).trim() : "";
+  country = country ? String(country).trim() : "";
+  postalCode = postalCode ? String(postalCode).trim() : "";
+  phone = phone ? String(phone).trim() : "";
+  
+  qty丰盛款 = Number(qty丰盛款) || 0;
+  qty富豪款 = Number(qty富豪款) || 0;
+  qty吸金款 = Number(qty吸金款) || 0;
+  qty聚财款 = Number(qty聚财款) || 0;
+  qty带财款 = Number(qty带财款) || 0;
+  
+  // Validation checks
+  if (!name) {
+    sheet.getRange(row, 16).setValue("Error: No name");
+    return;
+  }
+
+  if (!email) {
+    sheet.getRange(row, 16).setValue("Error: No email provided");
+    return;
+  }
+
+  if (qty丰盛款 <= 0 && qty富豪款 <= 0 && qty吸金款 <= 0 && qty聚财款 <= 0 && qty带财款 <= 0) {
+    sheet.getRange(row, 16).setValue("No products ordered");
+    return;
+  }
+
+  // Shopify credentials
+  var store = "z14sj1-i5.myshopify.com";   
+  var token = "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";
+
+  // Check if customer exists
+  var customerId = null;
+  if (email) {
+    var searchUrl = "https://" + store + "/admin/api/2025-01/customers/search.json?query=email:" + encodeURIComponent(email);
+    var searchOptions = {
+      "method": "get",
+      "headers": { "X-Shopify-Access-Token": token },
+      "muteHttpExceptions": true
+    };
+    var searchResponse = UrlFetchApp.fetch(searchUrl, searchOptions);
+    var searchData = JSON.parse(searchResponse.getContentText());
+    if (searchData.customers && searchData.customers.length > 0) {
+      customerId = searchData.customers[0].id;
+    }
+  }
+
+  // Product definitions
+  var products = {
+    "丰盛款": { variant_id: 46719018434726, price: 496.00 },
+    "富豪款": { variant_id: 46719018369190, price: 397.00 },
+    "吸金款": { variant_id: 46719018270886, price: 196.00 },
+    "聚财款": { variant_id: 46719018172582, price: 496.00 },
+    "带财款": { variant_id: 46719018074278, price: 296.00 },
+    "天圆地方铜钱": { variant_id: 46719018008742, price: 0.00 }
+  };
+  
+  // Build line items
+  var lineItems = []; 
+  
+  if (qty丰盛款 > 0) {
+    lineItems.push({
+      "variant_id": products["丰盛款"].variant_id,
+      "quantity": qty丰盛款
+    });
+  }
+  
+  if (qty富豪款 > 0) {
+    lineItems.push({
+      "variant_id": products["富豪款"].variant_id,
+      "quantity": qty富豪款
+    });
+  }
+  
+  if (qty吸金款 > 0) {
+    lineItems.push({
+      "variant_id": products["吸金款"].variant_id,
+      "quantity": qty吸金款
+    });
+  }
+
+  if (qty聚财款 > 0) {
+    lineItems.push({
+      "variant_id": products["聚财款"].variant_id,
+      "quantity": qty聚财款
+    });
+  }
+
+  if (qty带财款 > 0) {
+    lineItems.push({
+      "variant_id": products["带财款"].variant_id,
+      "quantity": qty带财款
+    });
+  }
+
+  // Calculate total order value
+  var totalOrderValue = 
+    (qty丰盛款 * products["丰盛款"].price) + 
+    (qty富豪款 * products["富豪款"].price) + 
+    (qty吸金款 * products["吸金款"].price) + 
+    (qty聚财款 * products["聚财款"].price) + 
+    (qty带财款 * products["带财款"].price);
+  
+  // Add bonus items based on order value - EXCLUSIVE TIERS
+  var copperCoinsQuantity = 0;
+  var bonusMessage = "";
+  
+  if (totalOrderValue >= 2000) {
+    // 2000+ tier: 带财款 + 4 copper coins
+    lineItems.push({
+      "variant_id": products["带财款"].variant_id,
+      "quantity": 1,
+      "price": "0.00"
+    });
+    copperCoinsQuantity = 4;
+    bonusMessage = " | +带财款+4 Coins";
+  } else if (totalOrderValue >= 1500) {
+    // 1500-1999 tier: 吸金款 + 3 copper coins
+    lineItems.push({
+      "variant_id": products["吸金款"].variant_id,
+      "quantity": 1,
+      "price": "0.00"
+    });
+    copperCoinsQuantity = 3;
+    bonusMessage = " | +吸金款+3 Coins";
+  } else if (totalOrderValue >= 800) {
+    // 800-1499 tier: 2 copper coins
+    copperCoinsQuantity = 2;
+    bonusMessage = " | +2 Coins";
+  }
+  
+  // Add copper coins if any
+  if (copperCoinsQuantity > 0) {
+    lineItems.push({
+      "variant_id": products["天圆地方铜钱"].variant_id,
+      "quantity": copperCoinsQuantity
+    });
+  }
+
+  // Prepare customer data
+  var customerData = {};
+  if (customerId) {
+    customerData = { "id": customerId };
+  } else if (email) {
+    customerData = { "email": email };
+  }
+
+  // Create order note
+  var noteText = "Customer: " + (name || "Name not provided");
+  if (email) {
+    noteText += "\nEmail: " + email;
+  }
+
+  // Build order payload
+  var payload = {
+    "order": {
+      "line_items": lineItems,
+      "billing_address": {
+        "first_name": name || "Customer",
+        "last_name": "",
+        "phone": phone || "",
+        "address1": streetAddress || "N/A",
+        "city": city || "Kuala Lumpur", 
+        "province": state || "",
+        "country": country || "Malaysia",
+        "zip": postalCode || ""
+      },
+      "shipping_address": {
+        "first_name": name || "Customer",
+        "last_name": "",
+        "phone": phone || "",
+        "address1": streetAddress || "N/A",
+        "city": city || "Kuala Lumpur",
+        "province": state || "",
+        "country": country || "Malaysia",
+        "zip": postalCode || ""
+      },
+      "note": noteText,
+      "tags": "On Hold,Google Sheet Import,GHL",
+      "financial_status": "paid",
+      "send_receipt": false,
+      "send_fulfillment_receipt": false,
+      "inventory_behaviour": "decrement_obeying_policy"
+    }
+  };
+
+  // Add customer data if available
+  if (Object.keys(customerData).length > 0) {
+    payload.order.customer = customerData;
+  }
+
+  // Create order via Shopify API
+  var url = "https://" + store + "/admin/api/2025-01/orders.json";
+  var options = {
+    "method": "post",
+    "headers": {
+      "X-Shopify-Access-Token": token,
+      "Content-Type": "application/json"
+    },
+    "payload": JSON.stringify(payload),
+    "muteHttpExceptions": true
+  };
+
+  var response = UrlFetchApp.fetch(url, options);
+  var responseCode = response.getResponseCode();
+  var data = JSON.parse(response.getContentText());
+
+  // Handle response
+  if (responseCode >= 200 && responseCode < 300 && data.order) {
+    var resultMsg = "Order Created: " + data.order.id + " (RM" + totalOrderValue + ")" + bonusMessage;
+    sheet.getRange(row, 16).setValue(resultMsg);
+  } else {
+    var errorMsg = "Error (" + responseCode + "): ";
+    if (data.errors) {
+      errorMsg += JSON.stringify(data.errors);
+    } else {
+      errorMsg += response.getContentText();
+    }
+    sheet.getRange(row, 16).setValue(errorMsg);
+  }
+}
